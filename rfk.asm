@@ -225,9 +225,9 @@ DoneDisp:
   BEQ NoUp
   INC nkis
   LDA nkis
-  CMP #$41
+  CMP #$40
   BNE notmax
-  LDA #$40
+  LDA #$3F
   STA nkis
   notmax:
   
@@ -237,9 +237,9 @@ DoneDisp:
   BEQ NoDown
   DEC nkis
   LDA nkis
-  CMP #$FF
+  CMP #$00
   BNE notmin
-  LDA #$00
+  LDA #$01
   STA nkis
   notmin:
   
@@ -274,6 +274,8 @@ IncDone:
   STA nkiones
   LDA nkitens
   STA nkitens
+  
+  
   
   JMP GameEngineDone
 
