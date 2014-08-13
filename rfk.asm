@@ -15,6 +15,8 @@ buttons2   .rs 1  ; player 2 gamepad buttons, one bit per button
 nmicounter .rs 1  ; constant NMI counter for rng seeding purposes
 titledrawn .rs 1  ; Has the title screen been drawn yet?
 nkis	   .rs 1  ; Count of non-kitten-objects
+nkiones    .rs 1  ; ones digit of NKIs for title screen
+nkitens    .rs 1  ; tens digit of NKIs for title screen
 
 
 ;; DECLARE SOME CONSTANTS HERE
@@ -153,11 +155,16 @@ GameEngine:
     
   LDA gamestate
   CMP #STATEGAMEOVER
-  BEQ EngineGameOver  ;;game is displaying ending screen
+  BNE dj1
+  JMP EngineGameOver  ;;game is displaying ending screen
+  dj1:
   
   LDA gamestate
   CMP #STATEPLAYING
-  BEQ EnginePlaying   ;;game is playing
+  BNE dj2
+  JMP EnginePlaying   ;;game is playing
+  dj2:
+  
 GameEngineDone:  
   
   JSR UpdateSprites  ;;set ball/paddle sprites from positions
@@ -217,14 +224,56 @@ DoneDisp:
   AND #BUTUP
   BEQ NoUp
   INC nkis
+  LDA nkis
+  CMP #$41
+  BNE notmax
+  LDA #$40
+  STA nkis
+  notmax:
   
   NoUp:
   LDA buttons1
   AND #BUTDOWN
   BEQ NoDown
   DEC nkis
+  LDA nkis
+  CMP #$FF
+  BNE notmin
+  LDA #$00
+  STA nkis
+  notmin:
   
   NoDown:
+
+  LDX #$00
+  STX nkiones ; Blank out ones temp
+  STX nkitens ; Blank out tens temp
+  
+IncOnes:
+  INX
+  CPX nkis
+  BEQ IncDone
+  LDA nkiones
+  CLC
+  ADC #$01
+  STA nkiones
+  CMP #$0A
+  BEQ IncTens
+  JMP IncOnes
+IncTens:
+  LDA #$00
+  STA nkiones
+  LDA nkitens
+  CLC
+  ADC #$01
+  STA nkitens
+  JMP IncOnes
+IncDone:
+
+  LDA nkiones
+  STA nkiones
+  LDA nkitens
+  STA nkitens
   
   JMP GameEngineDone
 
@@ -291,7 +340,13 @@ turn_screen_on:
   LDA #%00011110   ; enable sprites, enable background, no clipping on left side
   STA $2001
   rts 
-    
+
+turn_screen_off:
+  LDX #$00     ; now X = 0
+  STX $2000    ; disable NMI
+  STX $2001    ; disable rendering
+  STX $4010    ; disable DMC IRQs
+rts  
         
 ;;;;;;;;;;;;;;  
   
