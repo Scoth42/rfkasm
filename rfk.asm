@@ -179,6 +179,14 @@ GameEngineDone:
 EngineTitle:
   LDA titledrawn
   BNE DoneDisp
+  LDA $2002    ; read PPU status to reset the high/low latch to high
+  LDA #$3F
+  STA $2006    ; write the high byte of $3F10 address
+  LDA #$1D
+  STA $2006    ; write the low byte of $3F10 address
+  LDA #$2D
+  STA $2007
+  
   LDX #$40
   STX $4017    ; disable APU frame IRQ
   LDX #$FF
@@ -269,13 +277,33 @@ IncTens:
   STA nkitens
   JMP IncOnes
 IncDone:
-
+  
   LDA nkiones
   STA nkiones
   LDA nkitens
   STA nkitens
   
+  LDA #$8D
+  STA $0200
+  LDA nkitens
+  CLC
+  ADC #$10
+  STA $0201
+  LDA #%00000011
+  STA $0202
+  LDA #$A4
+  STA $0203
   
+  LDA #$8D
+  STA $0204
+  LDA nkiones
+  CLC
+  ADC #$10
+  STA $0205
+  LDA #%00000011
+  STA $0206
+  LDA #$AC
+  STA $0207
   
   JMP GameEngineDone
 
