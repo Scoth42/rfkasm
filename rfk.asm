@@ -114,11 +114,12 @@ LoadPalettesLoop:
   LDA #$20
   STA nkis
   
+  ;JSR turn_screen_on
   LDA #%10010000   ; enable NMI, sprites from Pattern Table 0, background from Pattern Table 1
   STA $2000
 
-  ;LDA #%00011110   ; enable sprites, enable background, no clipping on left side
-  ;STA $2001
+  LDA #%00011110   ; enable sprites, enable background, no clipping on left side
+  STA $2001
 
 Forever:
   JMP Forever     ;jump back to Forever, infinite loop, waiting for NMI
@@ -162,6 +163,8 @@ GameEngine:
   LDA gamestate
   CMP #STATEPLAYING
   BNE dj2
+  LDA #$DE
+  STA $0500
   JMP EnginePlaying   ;;game is playing
   dj2:
   
@@ -187,16 +190,19 @@ EngineTitle:
   LDA #$2D
   STA $2007
   
-  LDX #$40
-  STX $4017    ; disable APU frame IRQ
-  LDX #$FF
-  TXS          ; Set up stack
-  INX          ; now X = 0
-  STX $2000    ; disable NMI
-  STX $2001    ; disable rendering
-  STX $4010    ; disable DMC IRQs
   
-  ldx #0
+  JSR turn_screen_off
+  ;LDX #$40
+  ;STX $4017    ; disable APU frame IRQ
+  ;LDX #$FF
+  ;TXS          ; Set up stack
+  ;INX          ; now X = 0
+
+  ;STX $2000    ; disable NMI
+  ;STX $2001    ; disable rendering
+  ;STX $4010    ; disable DMC IRQs
+  
+    ldx #0
 	lda #$20  ; set the destination address in PPU memory
   	sta $2006  ; should be $2000
   	stx $2006
@@ -224,13 +230,19 @@ DoneDisp:
   LDA buttons1
   AND #BUTSTART
   BEQ NoStart
-  LDA STATEPLAYING
+  LDA #STATEPLAYING
   STA gamestate
+  JSR clear_screen
+  JSR SpriteSetup
+  JMP GameEngineDone
   
   NoStart:
   LDA buttons1
   AND #BUTUP
   BEQ NoUp
+  LDA nmicounter
+  AND #%00000111
+  BNE NoUp
   INC nkis
   LDA nkis
   CMP #$40
@@ -243,6 +255,9 @@ DoneDisp:
   LDA buttons1
   AND #BUTDOWN
   BEQ NoDown
+  LDA nmicounter
+  AND #%00000111
+  BNE NoDown
   DEC nkis
   LDA nkis
   CMP #$00
@@ -317,7 +332,8 @@ EngineGameOver:
  
 EnginePlaying:
 
-; Main Game Bits Here
+  LDA #$AD
+  STA $0508
 
 
   JMP GameEngineDone
@@ -376,9 +392,82 @@ turn_screen_off:
   STX $2000    ; disable NMI
   STX $2001    ; disable rendering
   STX $4010    ; disable DMC IRQs
-rts  
-        
+  rts  
+
+clear_screen:
+    jsr turn_screen_off
+    ldx #0
+	lda #$20  ; set the destination address in PPU memory
+  	sta $2006  ; should be $2000
+  	stx $2006
+  	;lda #low(title)   ; put the high and low bytes of the address "title"
+	lda #$00
+  	sta addrLO        ; into the variables so we can use indirect addressing.
+  	;lda #high(title)
+  	sta addrHI
+
+	ldx #4  ; number of 256-byte chunks to load
+  	ldy #0
+clrloop:
+  	lda [addrLO],y
+  	sta $2007     ; load 256 bytes
+  	iny
+  	bne clrloop
+;--------------------
+  	inc addrHI  ; increment high byte of address title to next 256 byte chunk
+  	dex        ; one chunk done so X = X - 1.
+  	bne clrloop   ; if X isn't zero, do again        
+	jsr turn_screen_on
+	RTS
 ;;;;;;;;;;;;;;  
+
+SpriteSetup:
+  JSR random_number
+  STA $0200
+  STA $0501
+  LDA #$03
+  STA $0201
+  STA $0401
+  LDA #$00
+  STA $0202
+  STA $0402
+  JSR random_number
+  STA $0203
+  STA $0404
+  LDX #$04
+RandSpritesLoop:
+  LDA #$AD
+  STA $0503
+  JSR random_number
+  STA $0200,x
+  STA $0400,x
+  INX
+  INX
+  INX
+  JSR random_number
+  STA $0200,x
+  STA $0400,x
+  CPX nkis
+  BNE RandSpritesLoop
+RTS
+
+random_number:
+  LDA #$AF
+  STA $0504
+  lda nmicounter+1
+  asl A
+  asl A
+  eor nmicounter+1
+  asl A
+  eor nmicounter+1
+  asl A
+  asl A
+  eor nmicounter+1
+  asl A
+  rol nmicounter         ;shift this left, "random" bit comes from low
+  rol nmicounter+1
+  RTS
+
   
 title: 
   .incbin "title.bin"
