@@ -396,25 +396,14 @@ turn_screen_off:
 
 clear_screen:
     jsr turn_screen_off
-    ldx #0
-	lda #$20  ; set the destination address in PPU memory
-  	sta $2006  ; should be $2000
-  	stx $2006
-  	;lda #low(title)   ; put the high and low bytes of the address "title"
-	lda #$00
-  	sta addrLO        ; into the variables so we can use indirect addressing.
-  	;lda #high(title)
-  	sta addrHI
-
 	ldx #4  ; number of 256-byte chunks to load
   	ldy #0
 clrloop:
-  	lda [addrLO],y
+	lda #$00
   	sta $2007     ; load 256 bytes
   	iny
   	bne clrloop
 ;--------------------
-  	inc addrHI  ; increment high byte of address title to next 256 byte chunk
   	dex        ; one chunk done so X = X - 1.
   	bne clrloop   ; if X isn't zero, do again        
 	jsr turn_screen_on
@@ -435,6 +424,7 @@ SpriteSetup:
   STA $0203
   STA $0404
   LDX #$04
+  LDY #$00
 RandSpritesLoop:
   LDA #$AD
   STA $0503
@@ -447,7 +437,8 @@ RandSpritesLoop:
   JSR random_number
   STA $0200,x
   STA $0400,x
-  CPX nkis
+  INY
+  CPY nkis
   BNE RandSpritesLoop
 RTS
 
