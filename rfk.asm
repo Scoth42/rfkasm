@@ -17,6 +17,10 @@ titledrawn .rs 1  ; Has the title screen been drawn yet?
 nkis	   .rs 1  ; Count of non-kitten-objects
 nkiones    .rs 1  ; ones digit of NKIs for title screen
 nkitens    .rs 1  ; tens digit of NKIs for title screen
+lockup     .rs 1  ; Lock the up direction
+lockdown   .rs 1  ; Lock the down direction
+lockright  .rs 1  ; Lock the right direction
+lockleft   .rs 1  ; Lock the left direction.
 
 
 ;; DECLARE SOME CONSTANTS HERE
@@ -331,11 +335,79 @@ EngineGameOver:
 ;;;;;;;;;;;
  
 EnginePlaying:
+  LDA buttons1
+  AND #BUTUP
+  BEQ NoRUp
+  LDA lockup
+  CMP #$01
+  BEQ NoRUpLocked
+  SEC
+  LDA $0200
+  SBC #$08
+  STA $0200
+  LDA #$01
+  STA lockup
+  JMP GameEngineDone
+NoRUp:
+  LDA #$00
+  STA lockup
+NoRUpLocked:
 
-  LDA #$AD
-  STA $0508
+  LDA buttons1
+  AND #BUTDOWN
+  BEQ NoRDown
+  LDA lockdown
+  CMP #$01
+  BEQ NoRDownLocked
+  CLC
+  LDA $0200
+  ADC #$08
+  STA $0200
+  LDA #$01
+  STA lockdown
+  JMP GameEngineDone
+NoRDown:
+  LDA #$00
+  STA lockdown  
+NoRDownLocked:
+  
+  LDA buttons1
+  AND #BUTRIGHT
+  BEQ NoRRight
+  LDA lockright
+  CMP #$01
+  BEQ NoRRightLocked
+  CLC
+  LDA $0203
+  ADC #$08
+  STA $0203
+  LDA #$01
+  STA lockright
+  JMP GameEngineDone
+NoRRight:
+  LDA #$00
+  STA lockright
+  
+NoRRightLocked:
 
-
+  LDA buttons1
+  AND #BUTLEFT
+  BEQ NoRLeft
+  LDA lockleft
+  CMP #$01
+  BEQ NoRLeftLocked
+  SEC
+  LDA $0203
+  SBC #$08
+  STA $0203
+  LDA #$01
+  STA lockleft
+  JMP GameEngineDone
+NoRLeft:
+  LDA #$00
+  STA lockleft
+NoRLeftLocked:
+  
   JMP GameEngineDone
  
  
@@ -472,7 +544,7 @@ palette:
 sprites:
      ;vert tile attr horiz
   .db $80, $03, $00, $80   ;sprite 0
-  .db $80, $33, $00, $88   ;sprite 1
+  ;.db $80, $33, $00, $88   ;sprite 1
   ;.db $88, $34, $00, $80   ;sprite 2
   ;.db $88, $35, $00, $88   ;sprite 3
 
