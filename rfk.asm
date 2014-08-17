@@ -341,8 +341,11 @@ EnginePlaying:
   LDA lockup
   CMP #$01
   BEQ NoRUpLocked
-  SEC
+
   LDA $0200
+  CMP #$27
+  BEQ NoRUpLocked
+  SEC
   SBC #$08
   STA $0200
   LDA #$01
@@ -359,8 +362,11 @@ NoRUpLocked:
   LDA lockdown
   CMP #$01
   BEQ NoRDownLocked
-  CLC
+ 
   LDA $0200
+  CMP #$DF
+  BEQ NoRDownLocked
+  CLC
   ADC #$08
   STA $0200
   LDA #$01
@@ -377,8 +383,11 @@ NoRDownLocked:
   LDA lockright
   CMP #$01
   BEQ NoRRightLocked
+
+  LDA  $0203
+  CMP #$F8
+  BEQ NoRRightLocked
   CLC
-  LDA $0203
   ADC #$08
   STA $0203
   LDA #$01
@@ -396,8 +405,10 @@ NoRRightLocked:
   LDA lockleft
   CMP #$01
   BEQ NoRLeftLocked
-  SEC
   LDA $0203
+  CMP #$00
+  BEQ NoRLeftLocked
+  SEC
   SBC #$08
   STA $0203
   LDA #$01
@@ -483,18 +494,43 @@ clrloop:
 ;;;;;;;;;;;;;;  
 
 SpriteSetup:
+  CLC
+roby:
   JSR random_number
   STA $0200
-  STA $0501
+  CMP #$17
+  BCS roby
+  LDX #$07
+ymult:
+  ADC $0200
+  DEX
+  CPX #$00
+  BNE ymult
+  ADC #$28
+  STA $0200
+  
+  
   LDA #$03
   STA $0201
-  STA $0401
   LDA #$00
   STA $0202
-  STA $0402
+  CLC
+  
+robx:
   JSR random_number
   STA $0203
-  STA $0404
+  CMP #$17
+  BCS robx
+  
+  LDX #$07
+xmult:
+  ADC $0203
+  DEX
+  CPX #$00
+  BNE xmult
+  SBC #$06
+  STA $0203
+  
   LDX #$04
   LDY #$00
 RandSpritesLoop:
