@@ -21,6 +21,7 @@ lockup     .rs 1  ; Lock the up direction
 lockdown   .rs 1  ; Lock the down direction
 lockright  .rs 1  ; Lock the right direction
 lockleft   .rs 1  ; Lock the left direction.
+multtemp   .rs 1  ; Temp storage for multiplication
 
 
 ;; DECLARE SOME CONSTANTS HERE
@@ -419,6 +420,8 @@ NoRLeft:
   STA lockleft
 NoRLeftLocked:
   
+  
+  
   JMP GameEngineDone
  
  
@@ -510,7 +513,7 @@ ymult:
   STA $0200
   
   
-  LDA #$03
+  LDA #$B0
   STA $0201
   LDA #$00
   STA $0202
@@ -528,23 +531,52 @@ xmult:
   DEX
   CPX #$00
   BNE xmult
-  SBC #$06
+  SBC #$0E
   STA $0203
+  
   
   LDX #$04
   LDY #$00
 RandSpritesLoop:
-  LDA #$AD
-  STA $0503
+  ;LDA #$AD
+  ;STA $0503
+nkiy:
   JSR random_number
-  STA $0200,x
-  STA $0400,x
+  CMP #$20
+  BCS nkiy
+  STA $0204,x
+  
+  STY multtemp
+  LDY #$07
+nkiymult:
+  ADC $0204,x
+  DEY
+  CPY #$00
+  BNE nkiymult
+  LDY multtemp
+  STA $0204,x
   INX
+  LDA #$04
+  STA $0204,x
   INX
+  LDA #$00
+  STA $0204,x
   INX
+nkix:
   JSR random_number
-  STA $0200,x
-  STA $0400,x
+  CMP #$17
+  BCS nkix
+  STA $0204,x
+  
+  STY multtemp
+  LDY #$07
+nkixmult:
+  ADC $0204,x
+  DEY
+  CPY #$00
+  BNE nkixmult
+  LDY multtemp
+  STA $0204,x
   INY
   CPY nkis
   BNE RandSpritesLoop
@@ -579,7 +611,7 @@ palette:
 
 sprites:
      ;vert tile attr horiz
-  .db $80, $03, $00, $80   ;sprite 0
+  .db $80, $B0, $00, $80   ;sprite 0
   ;.db $80, $33, $00, $88   ;sprite 1
   ;.db $88, $34, $00, $80   ;sprite 2
   ;.db $88, $35, $00, $88   ;sprite 3
