@@ -535,8 +535,9 @@ xmult:
   STA $0203
   
   
-  LDX #$04
+  LDX #$00
   LDY #$00
+  
 RandSpritesLoop:
   ;LDA #$AD
   ;STA $0503
@@ -544,6 +545,7 @@ nkiy:
   JSR random_number
   CMP #$20
   BCS nkiy
+  
   STA $0204,x
   
   STY multtemp
@@ -578,6 +580,7 @@ nkixmult:
   LDY multtemp
   STA $0204,x
   INY
+  INX
   CPY nkis
   BNE RandSpritesLoop
 RTS
