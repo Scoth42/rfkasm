@@ -22,6 +22,15 @@ lockdown   .rs 1  ; Lock the down direction
 lockright  .rs 1  ; Lock the right direction
 lockleft   .rs 1  ; Lock the left direction.
 multtemp   .rs 1  ; Temp storage for multiplication
+rng0 .rs 1; random number generator output
+rng1 .rs 1; random number generator output
+rng2 .rs 1; random number generator output
+rng3 .rs 1; random number generator output
+rng4 .rs 1; random number generator output
+rng5 .rs 1; random number generator output
+rng6 .rs 1; random number generator output
+rng7 .rs 1; random number generator output
+rng8 .rs 1; temp byte for rng manipulation
 
 
 ;; DECLARE SOME CONSTANTS HERE
@@ -125,7 +134,7 @@ LoadPalettesLoop:
 
   LDA #%00011110   ; enable sprites, enable background, no clipping on left side
   STA $2001
-
+  
 Forever:
   JMP Forever     ;jump back to Forever, infinite loop, waiting for NMI
   
@@ -237,6 +246,24 @@ DoneDisp:
   BEQ NoStart
   LDA #STATEPLAYING
   STA gamestate
+    ; seed rng
+  LDA nmicounter
+  STA rng0
+  LDA #$00
+  STA rng1
+  LDA #$34
+  STA rng2
+  LDA #$56
+  STA rng3
+  LDA #$78
+  STA rng4
+  LDA #$9A
+  STA rng5
+  LDA #$BC
+  STA rng6
+  LDA #$DF
+  STA rng7
+  
   JSR clear_screen
   JSR SpriteSetup
   JMP GameEngineDone
@@ -542,9 +569,11 @@ RandSpritesLoop:
   ;LDA #$AD
   ;STA $0503
 nkiy:
+  CLC
   JSR random_number
-  CMP #$20
-  BCS nkiy
+  AND #$1F
+  ;CMP #$17
+  ;BCS nkiy
   
   STA $0204,x
   
@@ -565,10 +594,14 @@ nkiymult:
   STA $0204,x
   INX
 nkix:
+  CLC
   JSR random_number
-  CMP #$17
-  BCS nkix
+  AND #$1F
+  ;CMP #$20
+  ;BCS nkix
+  
   STA $0204,x
+
   
   STY multtemp
   LDY #$07
@@ -579,27 +612,57 @@ nkixmult:
   BNE nkixmult
   LDY multtemp
   STA $0204,x
+
   INY
   INX
   CPY nkis
   BNE RandSpritesLoop
-RTS
+  RTS
 
+;random_number:
+;  LDA #$AF
+;  STA $0504
+;  lda nmicounter+1
+;  asl A
+;  asl A
+;  eor nmicounter+1
+;  asl A
+;  eor nmicounter+1
+;  asl A
+;  asl A
+;  eor nmicounter+1
+;  asl A
+;  rol nmicounter         ;shift this left, "random" bit comes from low
+;  rol nmicounter+1
+;  RTS
+  
 random_number:
-  LDA #$AF
-  STA $0504
-  lda nmicounter+1
-  asl A
-  asl A
-  eor nmicounter+1
-  asl A
-  eor nmicounter+1
-  asl A
-  asl A
-  eor nmicounter+1
-  asl A
-  rol nmicounter         ;shift this left, "random" bit comes from low
-  rol nmicounter+1
+  LDA rng6
+  ROL A     
+  ROL rng7  ; put bit7 from rng6 as bit0 in rng7
+  ROL A     ; keep bit6 from rng6 in carry
+  LDA rng7  ; load rng7
+  ROL A     ; shift A with bit6 from rng6 to align all 8 eor pairs
+  EOR rng7  ; xor
+  EOR #$FF  ; xnor
+  ;EOR nmicounter
+  STA rng8  ; store result in temp storage
+  LDA rng6  ; slide all registers to the next register
+  STA rng7  
+  LDA rng5
+  STA rng6
+  LDA rng4
+  STA rng5
+  LDA rng3
+  STA rng4
+  LDA rng2
+  STA rng3
+  LDA rng1
+  STA rng2
+  LDA rng0
+  STA rng1
+  LDA rng8  ; temp into 0
+  STA rng0
   RTS
 
   
