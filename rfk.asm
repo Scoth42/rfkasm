@@ -55,7 +55,7 @@ BUTA      =$80
 
   .bank 0
   
-  	.org $0010
+  	.org $0040
 addrLO:	.db 0  ; make "variable"s for our indirect addressing
 addrHI: .db 0
 
@@ -268,7 +268,7 @@ DoneDisp:
   JSR SpriteSetup
   JMP GameEngineDone
   
-  NoStart:
+NoStart:
   LDA buttons1
   AND #BUTUP
   BEQ NoUp
@@ -281,9 +281,9 @@ DoneDisp:
   BNE notmax
   LDA #$3F
   STA nkis
-  notmax:
+notmax:
   
-  NoUp:
+NoUp:
   LDA buttons1
   AND #BUTDOWN
   BEQ NoDown
@@ -296,9 +296,9 @@ DoneDisp:
   BNE notmin
   LDA #$01
   STA nkis
-  notmin:
+notmin:
   
-  NoDown:
+NoDown:
 
   LDX #$00
   STX nkiones ; Blank out ones temp
@@ -527,6 +527,7 @@ SpriteSetup:
   CLC
 roby:
   JSR random_number
+  AND #$1f ; reduce random bits to 0-31
   STA $0200
   CMP #$17
   BCS roby
@@ -548,8 +549,9 @@ ymult:
   
 robx:
   JSR random_number
+  AND #$1f ; reduce random bits to 0-31
   STA $0203
-  CMP #$17
+  CMP #$1f ; n8-- = xmax? was $17 (ymax?)
   BCS robx
   
   LDX #$07
