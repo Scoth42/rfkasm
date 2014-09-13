@@ -560,25 +560,25 @@ roby:
   
 robx:
   JSR random_number
-  AND #$1f ; reduce random bits to 0-31
+  AND #$F8 ; reduce random bits to 0-31
   STA $0203
-  CMP #$1f ; n8-- = xmax? was $17 (ymax?)
-  BCS robx
+  ;CMP #$1f ; n8-- = xmax? was $17 (ymax?)
+  ;BCS robx
   
-  LDX #$07
-xmult:
-  ADC $0203
-  DEX
-  CPX #$00
-  BNE xmult
+;  LDX #$07
+;xmult:
+;  ADC $0203
+;  DEX
+;  CPX #$00
+;  BNE xmult
 ;  ROL $0203
 ;  ROL $0203
 ;  ROL $0203
 
   ;SBC #$0E
-  CLC
-  ADC #2
-  STA $0203
+  ;CLC
+  ;ADC #2 ; x adjustment
+  ;STA $0203
   
   
   LDX #$00
@@ -607,6 +607,9 @@ nkiy:
 nkix:
   CLC
   JSR random_number
+  SEC
+  SBC #1 ; range should really be 0-254 than 1-255
+  
   STA $0160,x ; debug
   AND #$F8
   STA $0161,x ; debug
@@ -615,7 +618,9 @@ nkix:
   ;STA $0162,x ; debug
   ;BCS nkix
   CMP #$F1 ; x cutoff
+  BEQ nkix0 
   BCS nkix
+nkix0:
 
   STA $0207,x ; x coordinate
   TXA
