@@ -122,7 +122,24 @@ LoadPalettesLoop:
 
 
 ;;;Set some initial ball stats
-
+  ; seed rng
+  LDA #$69
+  STA rng0
+  LDA #$00
+  STA rng1
+  LDA #$34
+  STA rng2
+  LDA #$56
+  STA rng3
+  LDA #$78
+  STA rng4
+  LDA #$9A
+  STA rng5
+  LDA #$BC
+  STA rng6
+  LDA #$DF
+  STA rng7
+  
 
 ;;:Set starting game state
   LDA #STATETITLE
@@ -148,6 +165,7 @@ NMI:
   STA $2003       ; set the low byte (00) of the RAM address
   LDA #$02
   STA $4014       ; set the high byte (02) of the RAM address, start the transfer
+  JSR random_number ; for randomness
 
   ;;This is the PPU clean up section, so rendering the next frame starts properly.
   ;LDA #%10010000   ; enable NMI, sprites from Pattern Table 0, background from Pattern Table 1
@@ -251,22 +269,7 @@ DoneDisp:
   LDA #STATEPLAYING
   STA gamestate
     ; seed rng
-  LDA nmicounter
-  STA rng0
-  LDA #$00
-  STA rng1
-  LDA #$34
-  STA rng2
-  LDA #$56
-  STA rng3
-  LDA #$78
-  STA rng4
-  LDA #$9A
-  STA rng5
-  LDA #$BC
-  STA rng6
-  LDA #$DF
-  STA rng7
+  ;LDA nmicounter
   
   JSR clear_screen
   JSR SpriteSetup
@@ -382,17 +385,17 @@ EnginePlaying:
   BEQ NoRUpLocked
 
   LDA $0200
-  CMP #$27
-  BEQ NoRUpLocked
+;  CMP #$27
+;  BEQ NoRUpLocked
   SEC
   SBC #$08
 ; A contains destination y
   STA checky
 
 ;  STA $0200
-;  LDA #$01
-;  STA lockup
-;  JMP GameEngineDone
+  LDA #$01
+  STA lockup
+  JMP NoRUpLocked
 NoRUp:
   LDA #$00
   STA lockup
@@ -407,16 +410,17 @@ NoRUpLocked:
   BEQ NoRDownLocked
  
   LDA $0200
-  CMP #$DF
-  BEQ NoRDownLocked
+;  CMP #$DF
+;  BEQ NoRDownLocked
   CLC
   ADC #$08
 ; A contains destination y
   STA checky
 
 ;  STA $0200
-;  LDA #$01
-;  STA lockdown
+  LDA #$01
+  STA lockdown
+  JMP NoRDownLocked
 ;  JMP GameEngineDone
 NoRDown:
   LDA #$00
@@ -432,15 +436,16 @@ NoRDownLocked:
   BEQ NoRRightLocked
 
   LDA  $0203
-  CMP #$F8
-  BEQ NoRRightLocked
+;  CMP #$F8
+;  BEQ NoRRightLocked
   CLC
   ADC #$08
   STA checkx
 ;  STA $0203
-;  LDA #$01
-;  STA lockright
+  LDA #$01
+  STA lockright
 ;  JMP GameEngineDone
+  JMP NoRRightLocked
 NoRRight:
   LDA #$00
   STA lockright
@@ -455,15 +460,16 @@ NoRRightLocked:
   CMP #$01
   BEQ NoRLeftLocked
   LDA $0203
-  CMP #$00
-  BEQ NoRLeftLocked
+;  CMP #$00
+;  BEQ NoRLeftLocked
   SEC
   SBC #$08
   STA checkx
 ;  STA $0203
-;  LDA #$01
-;  STA lockleft
+  LDA #$01
+  STA lockleft
 ;  JMP GameEngineDone
+  JMP NoRLeftLocked
 NoRLeft:
   LDA #$00
   STA lockleft
