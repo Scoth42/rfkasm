@@ -31,6 +31,9 @@ rng5 .rs 1; random number generator output
 rng6 .rs 1; random number generator output
 rng7 .rs 1; random number generator output
 rng8 .rs 1; temp byte for rng manipulation
+checkx  .rs 1 ; x position for movement checking
+checky  .rs 1 ; y position for movement checking
+founditem .rs 1 ; nki/kitten id bumped into
 
 
 ;; DECLARE SOME CONSTANTS HERE
@@ -158,6 +161,7 @@ NMI:
   ;;;all graphics updates done by here, run game engine
 
 
+
   JSR ReadController1  ;;get the current button data for player 1
   JSR ReadController2  ;;get the current button data for player 2
   
@@ -172,7 +176,7 @@ GameEngine:
   CMP #STATEGAMEOVER
   BNE dj1
   JMP EngineGameOver  ;;game is displaying ending screen
-  dj1:
+dj1:
   
   LDA gamestate
   CMP #STATEPLAYING
@@ -363,6 +367,13 @@ EngineGameOver:
 ;;;;;;;;;;;
  
 EnginePlaying:
+  ; mark current position
+  LDA $0200
+  STA checky
+  LDA $0203
+  STA checkx
+
+;-------------------UP--------------------------
   LDA buttons1
   AND #BUTUP
   BEQ NoRUp
@@ -375,15 +386,19 @@ EnginePlaying:
   BEQ NoRUpLocked
   SEC
   SBC #$08
-  STA $0200
-  LDA #$01
-  STA lockup
-  JMP GameEngineDone
+; A contains destination y
+  STA checky
+
+;  STA $0200
+;  LDA #$01
+;  STA lockup
+;  JMP GameEngineDone
 NoRUp:
   LDA #$00
   STA lockup
 NoRUpLocked:
 
+;-------------------DOWN------------------------
   LDA buttons1
   AND #BUTDOWN
   BEQ NoRDown
@@ -396,14 +411,18 @@ NoRUpLocked:
   BEQ NoRDownLocked
   CLC
   ADC #$08
-  STA $0200
-  LDA #$01
-  STA lockdown
-  JMP GameEngineDone
+; A contains destination y
+  STA checky
+
+;  STA $0200
+;  LDA #$01
+;  STA lockdown
+;  JMP GameEngineDone
 NoRDown:
   LDA #$00
   STA lockdown  
 NoRDownLocked:
+;-------------------RIGHT-----------------------
   
   LDA buttons1
   AND #BUTRIGHT
@@ -417,15 +436,17 @@ NoRDownLocked:
   BEQ NoRRightLocked
   CLC
   ADC #$08
-  STA $0203
-  LDA #$01
-  STA lockright
-  JMP GameEngineDone
+  STA checkx
+;  STA $0203
+;  LDA #$01
+;  STA lockright
+;  JMP GameEngineDone
 NoRRight:
   LDA #$00
   STA lockright
   
 NoRRightLocked:
+;-------------------LEFT------------------------
 
   LDA buttons1
   AND #BUTLEFT
@@ -438,19 +459,107 @@ NoRRightLocked:
   BEQ NoRLeftLocked
   SEC
   SBC #$08
-  STA $0203
-  LDA #$01
-  STA lockleft
-  JMP GameEngineDone
+  STA checkx
+;  STA $0203
+;  LDA #$01
+;  STA lockleft
+;  JMP GameEngineDone
 NoRLeft:
   LDA #$00
   STA lockleft
 NoRLeftLocked:
+
+  LDA checkx
+  CMP $0203
+  BNE CheckControls
+  LDA checky
+  CMP $0200
+  BNE CheckControls
+  JMP EndControls
   
-  
-  
+CheckControls:
+  JSR CheckBoundsAndCollisions
+
+EndControls:
   JMP GameEngineDone
+
+CheckBoundsAndCollisions:
+  ; Lower Bounds
+  LDA checkx
+  CMP #0 ; x minimum
+  BEQ CBACCchecky ; on the line is in
+  BCC EndOfCheckBounds ; not possible when xmin is 0
+
+CBACCchecky:
+  LDA checky
+  CMP #1
+  BEQ CBACCcheckupy
+  BCC EndOfCheckBounds
+
+
+CBACCcheckupy:
+  ; UpperBounds
+  CMP #$D9
+  BEQ CBACCcheckupx
+  BCS EndOfCheckBounds
+CBACCcheckupx:
+  LDA checkx
+  CMP #$F8
+  BEQ CBACCLoopSetup
+  BCS EndOfCheckBounds
+CBACCLoopSetup:
+  ; Collisions
+  LDX #0 ; compare vs nkis
+  LDY #0 ; increases by 4 per nki loop
+CBACCLoop:
+  ; loop through all nkis, checking y then x and bailing with a double match.
+  CPX nkis
+  BEQ CheckedOutCanMove
+  LDA checky
+  CMP $0204,y
+  BEQ CBACCyMatch
+  JMP CBACCNoMatch
+CBACCyMatch:
+  LDA checkx
+  CMP $0207,y
+  BEQ FoundMatch
+CBACCNoMatch:
+  ;doesn't match, increment and loop
+  INX
+  INY
+  INY
+  INY
+  INY
+  JMP CBACCLoop
+FoundMatch:
+  ; X = item which might be kitten
+  STX founditem 
+  JMP HandleItem
+CheckedOutCanMove:
+  ; move robot here, to checkx,checky
+  LDA checky
+  STA $0200
+  LDA checkx
+  STA $0203
+EndOfCheckBounds:
+  RTS
  
+
+HandleItem:
+  ; display message correlating with X register'd item
+
+  
+
+  LDA founditem
+  CMP #0 ; kitten!
+  BEQ GameOver
+
+  RTS
+
+GameOver:
+  LDA #STATEGAMEOVER
+  STA gamestate
+  JMP GameOver ; forever FIXME
  
  
  
@@ -552,6 +661,7 @@ roby:
   STA $0200
   
   
+  LDA #$B0
   LDA #$B0
   STA $0201
   LDA #$00
