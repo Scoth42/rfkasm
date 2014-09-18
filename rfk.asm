@@ -31,6 +31,9 @@ rng5 .rs 1; random number generator output
 rng6 .rs 1; random number generator output
 rng7 .rs 1; random number generator output
 rng8 .rs 1; temp byte for rng manipulation
+checkx  .rs 1 ; x position for movement checking
+checky  .rs 1 ; y position for movement checking
+founditem .rs 1 ; nki/kitten id bumped into
 
 
 ;; DECLARE SOME CONSTANTS HERE
@@ -119,7 +122,24 @@ LoadPalettesLoop:
 
 
 ;;;Set some initial ball stats
-
+  ; seed rng
+  LDA #$69
+  STA rng0
+  LDA #$00
+  STA rng1
+  LDA #$34
+  STA rng2
+  LDA #$56
+  STA rng3
+  LDA #$78
+  STA rng4
+  LDA #$9A
+  STA rng5
+  LDA #$BC
+  STA rng6
+  LDA #$DF
+  STA rng7
+  
 
 ;;:Set starting game state
   LDA #STATETITLE
@@ -145,6 +165,7 @@ NMI:
   STA $2003       ; set the low byte (00) of the RAM address
   LDA #$02
   STA $4014       ; set the high byte (02) of the RAM address, start the transfer
+  JSR random_number ; for randomness
 
   ;;This is the PPU clean up section, so rendering the next frame starts properly.
   ;LDA #%10010000   ; enable NMI, sprites from Pattern Table 0, background from Pattern Table 1
@@ -156,6 +177,7 @@ NMI:
   ;STA $2005
     
   ;;;all graphics updates done by here, run game engine
+
 
 
   JSR ReadController1  ;;get the current button data for player 1
@@ -172,7 +194,7 @@ GameEngine:
   CMP #STATEGAMEOVER
   BNE dj1
   JMP EngineGameOver  ;;game is displaying ending screen
-  dj1:
+dj1:
   
   LDA gamestate
   CMP #STATEPLAYING
@@ -247,22 +269,7 @@ DoneDisp:
   LDA #STATEPLAYING
   STA gamestate
     ; seed rng
-  LDA nmicounter
-  STA rng0
-  LDA #$00
-  STA rng1
-  LDA #$34
-  STA rng2
-  LDA #$56
-  STA rng3
-  LDA #$78
-  STA rng4
-  LDA #$9A
-  STA rng5
-  LDA #$BC
-  STA rng6
-  LDA #$DF
-  STA rng7
+  ;LDA nmicounter
   
   JSR clear_screen
   JSR SpriteSetup
@@ -363,6 +370,13 @@ EngineGameOver:
 ;;;;;;;;;;;
  
 EnginePlaying:
+  ; mark current position
+  LDA $0200
+  STA checky
+  LDA $0203
+  STA checkx
+
+;-------------------UP--------------------------
   LDA buttons1
   AND #BUTUP
   BEQ NoRUp
@@ -371,19 +385,23 @@ EnginePlaying:
   BEQ NoRUpLocked
 
   LDA $0200
-  CMP #$27
-  BEQ NoRUpLocked
+;  CMP #$27
+;  BEQ NoRUpLocked
   SEC
   SBC #$08
-  STA $0200
+; A contains destination y
+  STA checky
+
+;  STA $0200
   LDA #$01
   STA lockup
-  JMP GameEngineDone
+  JMP NoRUpLocked
 NoRUp:
   LDA #$00
   STA lockup
 NoRUpLocked:
 
+;-------------------DOWN------------------------
   LDA buttons1
   AND #BUTDOWN
   BEQ NoRDown
@@ -392,18 +410,23 @@ NoRUpLocked:
   BEQ NoRDownLocked
  
   LDA $0200
-  CMP #$DF
-  BEQ NoRDownLocked
+;  CMP #$DF
+;  BEQ NoRDownLocked
   CLC
   ADC #$08
-  STA $0200
+; A contains destination y
+  STA checky
+
+;  STA $0200
   LDA #$01
   STA lockdown
-  JMP GameEngineDone
+  JMP NoRDownLocked
+;  JMP GameEngineDone
 NoRDown:
   LDA #$00
   STA lockdown  
 NoRDownLocked:
+;-------------------RIGHT-----------------------
   
   LDA buttons1
   AND #BUTRIGHT
@@ -413,19 +436,22 @@ NoRDownLocked:
   BEQ NoRRightLocked
 
   LDA  $0203
-  CMP #$F8
-  BEQ NoRRightLocked
+;  CMP #$F8
+;  BEQ NoRRightLocked
   CLC
   ADC #$08
-  STA $0203
+  STA checkx
+;  STA $0203
   LDA #$01
   STA lockright
-  JMP GameEngineDone
+;  JMP GameEngineDone
+  JMP NoRRightLocked
 NoRRight:
   LDA #$00
   STA lockright
   
 NoRRightLocked:
+;-------------------LEFT------------------------
 
   LDA buttons1
   AND #BUTLEFT
@@ -434,23 +460,112 @@ NoRRightLocked:
   CMP #$01
   BEQ NoRLeftLocked
   LDA $0203
-  CMP #$00
-  BEQ NoRLeftLocked
+;  CMP #$00
+;  BEQ NoRLeftLocked
   SEC
   SBC #$08
-  STA $0203
+  STA checkx
+;  STA $0203
   LDA #$01
   STA lockleft
-  JMP GameEngineDone
+;  JMP GameEngineDone
+  JMP NoRLeftLocked
 NoRLeft:
   LDA #$00
   STA lockleft
 NoRLeftLocked:
+
+  LDA checkx
+  CMP $0203
+  BNE CheckControls
+  LDA checky
+  CMP $0200
+  BNE CheckControls
+  JMP EndControls
   
-  
-  
+CheckControls:
+  JSR CheckBoundsAndCollisions
+
+EndControls:
   JMP GameEngineDone
+
+CheckBoundsAndCollisions:
+  ; Lower Bounds
+  LDA checkx
+  CMP #0 ; x minimum
+  BEQ CBACCchecky ; on the line is in
+  BCC EndOfCheckBounds ; not possible when xmin is 0
+
+CBACCchecky:
+  LDA checky
+  CMP #1
+  BEQ CBACCcheckupy
+  BCC EndOfCheckBounds
+
+
+CBACCcheckupy:
+  ; UpperBounds
+  CMP #$D9
+  BEQ CBACCcheckupx
+  BCS EndOfCheckBounds
+CBACCcheckupx:
+  LDA checkx
+  CMP #$F8
+  BEQ CBACCLoopSetup
+  BCS EndOfCheckBounds
+CBACCLoopSetup:
+  ; Collisions
+  LDX #0 ; compare vs nkis
+  LDY #0 ; increases by 4 per nki loop
+CBACCLoop:
+  ; loop through all nkis, checking y then x and bailing with a double match.
+  CPX nkis
+  BEQ CheckedOutCanMove
+  LDA checky
+  CMP $0204,y
+  BEQ CBACCyMatch
+  JMP CBACCNoMatch
+CBACCyMatch:
+  LDA checkx
+  CMP $0207,y
+  BEQ FoundMatch
+CBACCNoMatch:
+  ;doesn't match, increment and loop
+  INX
+  INY
+  INY
+  INY
+  INY
+  JMP CBACCLoop
+FoundMatch:
+  ; X = item which might be kitten
+  STX founditem 
+  JMP HandleItem
+CheckedOutCanMove:
+  ; move robot here, to checkx,checky
+  LDA checky
+  STA $0200
+  LDA checkx
+  STA $0203
+EndOfCheckBounds:
+  RTS
  
+
+HandleItem:
+  ; display message correlating with X register'd item
+
+  
+
+  LDA founditem
+  CMP #0 ; kitten!
+  BEQ GameOver
+
+  RTS
+
+GameOver:
+  LDA #STATEGAMEOVER
+  STA gamestate
+  JMP GameOver ; forever FIXME
  
  
  
@@ -552,6 +667,7 @@ roby:
   STA $0200
   
   
+  LDA #$B0
   LDA #$B0
   STA $0201
   LDA #$00
