@@ -305,10 +305,10 @@ DoneDisp:
   
   JSR clear_screen
   JSR SpriteSetup
-  LDA #$20 ; static kitteh for testing
-  STA $0205 ; kitteh tile
-  LDA #3 ; kitteh palette
-  STA $0206 ; kitteh tile
+  ;LDA #$20 ; static kitteh for testing
+  ;STA $0205 ; kitteh tile
+  ;LDA #3 ; kitteh palette
+  ;STA $0206 ; kitteh tile
   
   JMP GameEngineDone
   
