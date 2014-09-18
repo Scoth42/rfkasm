@@ -527,17 +527,28 @@ SpriteSetup:
   CLC
 roby:
   JSR random_number
-  AND #$1f ; reduce random bits to 0-31
+  AND #$F8 ; (multiples of 8)
+  ;AND #$38 ; (for testing)
   STA $0200
-  CMP #$17
-  BCS roby
-  LDX #$07
-ymult:
-  ADC $0200
-  DEX
-  CPX #$00
-  BNE ymult
-  ADC #$28
+;  LDA #$1 ; --n8TEST
+;  AND #$1f ; reduce random bits to 0-31
+;  AND #$7 ; --n8TEST
+;  STA $0200
+;  CMP #$17
+;  BCS roby
+;  LDX #$07
+;ymult:
+;  ADC $0200
+;  DEX
+;  CPX #$00
+;  BNE ymult
+;  ROL $0200
+;  ROL $0200
+;  ROL $0200
+
+  ;ADC #$28
+  CLC
+  ADC #1 ; y offset
   STA $0200
   
   
@@ -549,19 +560,25 @@ ymult:
   
 robx:
   JSR random_number
-  AND #$1f ; reduce random bits to 0-31
+  AND #$F8 ; reduce random bits to 0-31
   STA $0203
-  CMP #$1f ; n8-- = xmax? was $17 (ymax?)
-  BCS robx
+  ;CMP #$1f ; n8-- = xmax? was $17 (ymax?)
+  ;BCS robx
   
-  LDX #$07
-xmult:
-  ADC $0203
-  DEX
-  CPX #$00
-  BNE xmult
-  SBC #$0E
-  STA $0203
+;  LDX #$07
+;xmult:
+;  ADC $0203
+;  DEX
+;  CPX #$00
+;  BNE xmult
+;  ROL $0203
+;  ROL $0203
+;  ROL $0203
+
+  ;SBC #$0E
+  ;CLC
+  ;ADC #2 ; x adjustment
+  ;STA $0203
   
   
   LDX #$00
@@ -573,50 +590,45 @@ RandSpritesLoop:
 nkiy:
   CLC
   JSR random_number
-  AND #$1F
-  ;CMP #$17
-  ;BCS nkiy
+  ;STA $0164,x -- debug logging in memory
+  AND #$F8 ; (multiples of 8)
+  ;STA $0165,x -- debug logging in memory
+  CLC
+  ADC #$21 ; Y-offset 1 pixel + one tile width (drawing from the bottom left) + 3 tile widths for info
+  BCS nkiy ; -- >FF is a rejection; could handle here or earlier with another CMP
+  CMP #$DF ; limit to usable tiles (y cutoff)
+  BCS nkiy
   
-  STA $0204,x
-  
-  STY multtemp
-  LDY #$07
-nkiymult:
-  ADC $0204,x
-  DEY
-  CPY #$00
-  BNE nkiymult
-  LDY multtemp
-  STA $0204,x
-  INX
+  STA $0204,x ; y coord
   LDA #$04
-  STA $0204,x
-  INX
+  STA $0205,x ; tile number
   LDA #$00
-  STA $0204,x
-  INX
+  STA $0206,x ; attributes
 nkix:
   CLC
   JSR random_number
-  AND #$1F
-  ;CMP #$20
+  SEC
+  SBC #1 ; range should really be 0-254 than 1-255
+  
+  STA $0160,x ; debug
+  AND #$F8
+  STA $0161,x ; debug
+  ;CLC
+  ;ADC #$1 ;  one pixel
+  ;STA $0162,x ; debug
   ;BCS nkix
-  
-  STA $0204,x
+  CMP #$F1 ; x cutoff
+  BEQ nkix0 
+  BCS nkix
+nkix0:
 
+  STA $0207,x ; x coordinate
+  TXA
+  CLC
+  ADC #4 ; increment X by 4
+  TAX
   
-  STY multtemp
-  LDY #$07
-nkixmult:
-  ADC $0204,x
-  DEY
-  CPY #$00
-  BNE nkixmult
-  LDY multtemp
-  STA $0204,x
-
   INY
-  INX
   CPY nkis
   BNE RandSpritesLoop
   RTS
