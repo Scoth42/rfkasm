@@ -34,13 +34,15 @@ rng8 .rs 1; temp byte for rng manipulation
 checkx  .rs 1 ; x position for movement checking
 checky  .rs 1 ; y position for movement checking
 founditem .rs 1 ; nki/kitten id bumped into
+tmpx .rs 1; nki checking storage
+tmpy .rs 1; nki checking storage
 
 
 ;; DECLARE SOME CONSTANTS HERE
 STATETITLE     = $00  ; displaying title screen
 STATEPLAYING   = $01  ; move paddles/ball, check for collisions
 STATEGAMEOVER  = $02  ; displaying game over screen
-MOVEDELAY  = $12  ; NMI between moves
+MOVEDELAY  = $08  ; NMI between moves
 
 ; Button codes and combinations
 BUTRIGHT  =$1 
@@ -667,6 +669,7 @@ clrloop:
 ;;;;;;;;;;;;;;  
 
 SpriteSetup:
+  jsr turn_screen_off
   CLC
 roby:
   JSR random_number
@@ -694,8 +697,6 @@ roby:
   ADC #1 ; y offset
   STA $0200
   
-  
-  LDA #$B0
   LDA #$B0
   STA $0201
   LDA #$00
@@ -744,9 +745,26 @@ nkiy:
   BCS nkiy
   
   STA $0204,x ; y coord
-  LDA #$04
+nkiTile:
+  JSR random_number
+  AND #$7F
+  BEQ nkiTile ; no zeros
+  CMP #$03
+  BNE nkiTileRow
+  CLC
+  ADC #1 ; fix #'s to $'s
+nkiTileRow:
   STA $0205,x ; tile number
-  LDA #$00
+  AND #$70 
+  CMP #$70 ; make row 7 row 6
+  BNE nkiGotTile
+  LDA $0205,x
+  AND #$6F
+  STA $0205,x ; tile number
+nkiGotTile:  
+  JSR random_number
+  ;LDA #$00
+  AND #03 ; random palette
   STA $0206,x ; attributes
 nkix:
   CLC
@@ -767,6 +785,10 @@ nkix:
 nkix0:
 
   STA $0207,x ; x coordinate
+  JSR nkiAvoidOverlap
+  BCS RandSpritesLoop ; overwrite current nki, no increments
+
+nkiNextnki:
   TXA
   CLC
   ADC #4 ; increment X by 4
@@ -775,7 +797,47 @@ nkix0:
   INY
   CPY nkis
   BNE RandSpritesLoop
+  JSR turn_screen_on
   RTS
+
+nkiAvoidOverlap:
+  ; save x and y
+  STX tmpx
+  STY tmpy ; holds current nki to compare
+  LDY tmpx ; current offset
+nkiOverlapLoop:
+  ; X is offset from 0204 to current
+  ; current to previous is 0200,x
+  ; decrementing to robot @ 0200,x=0 will bail loop
+
+  LDA $0200,x
+  CMP $0204,y
+  BNE nkiOverlapNextLoop
+  LDA $0203,x
+  CMP $0207,y
+  BEQ nkiOverlapFound
+  
+
+nkiOverlapNextLoop:
+  ; decrement X by 4
+  TXA
+  SEC
+  SBC #4
+  ;BEQ nkiOverlapNotFound ; disabled to check against robot
+  BCC nkiOverlapNotFound
+  TAX
+  JMP nkiOverlapLoop
+
+nkiOverlapNotFound:
+  CLC ; carry bit is the return value
+  JMP nkiOverlapEnd
+nkiOverlapFound:
+  SEC ; carry bit is the return value
+nkiOverlapEnd:
+  LDX tmpx
+  LDY tmpy
+  RTS
+  
 
 ;random_number:
 ;  LDA #$AF
