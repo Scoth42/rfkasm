@@ -40,6 +40,7 @@ founditem .rs 1 ; nki/kitten id bumped into
 STATETITLE     = $00  ; displaying title screen
 STATEPLAYING   = $01  ; move paddles/ball, check for collisions
 STATEGAMEOVER  = $02  ; displaying game over screen
+MOVEDELAY  = $12  ; NMI between moves
 
 ; Button codes and combinations
 BUTRIGHT  =$1 
@@ -376,13 +377,14 @@ EnginePlaying:
   LDA $0203
   STA checkx
 
+
 ;-------------------UP--------------------------
   LDA buttons1
   AND #BUTUP
   BEQ NoRUp
   LDA lockup
-  CMP #$01
-  BEQ NoRUpLocked
+  CMP #0
+  BNE NoRUpLocked
 
   LDA $0200
 ;  CMP #$27
@@ -393,21 +395,27 @@ EnginePlaying:
   STA checky
 
 ;  STA $0200
-  LDA #$01
+  LDA #MOVEDELAY
   STA lockup
   JMP NoRUpLocked
 NoRUp:
   LDA #$00
   STA lockup
+  JMP RDown
 NoRUpLocked:
+  LDA lockup
+  SEC
+  SBC #1
+  STA lockup
 
 ;-------------------DOWN------------------------
+RDown:
   LDA buttons1
   AND #BUTDOWN
   BEQ NoRDown
   LDA lockdown
-  CMP #$01
-  BEQ NoRDownLocked
+  CMP #0
+  BNE NoRDownLocked
  
   LDA $0200
 ;  CMP #$DF
@@ -418,22 +426,28 @@ NoRUpLocked:
   STA checky
 
 ;  STA $0200
-  LDA #$01
+  LDA #MOVEDELAY
   STA lockdown
   JMP NoRDownLocked
 ;  JMP GameEngineDone
 NoRDown:
   LDA #$00
   STA lockdown  
+  JMP RRight
 NoRDownLocked:
+  LDA lockdown
+  SEC
+  SBC #1
+  STA lockdown
 ;-------------------RIGHT-----------------------
   
+RRight:
   LDA buttons1
   AND #BUTRIGHT
   BEQ NoRRight
   LDA lockright
-  CMP #$01
-  BEQ NoRRightLocked
+  CMP #0
+  BNE NoRRightLocked
 
   LDA  $0203
 ;  CMP #$F8
@@ -442,23 +456,28 @@ NoRDownLocked:
   ADC #$08
   STA checkx
 ;  STA $0203
-  LDA #$01
+  LDA #MOVEDELAY
   STA lockright
 ;  JMP GameEngineDone
   JMP NoRRightLocked
 NoRRight:
   LDA #$00
   STA lockright
-  
+  JMP RLeft 
 NoRRightLocked:
+  LDA lockright
+  SEC
+  SBC #1
+  STA lockright
 ;-------------------LEFT------------------------
 
+RLeft:
   LDA buttons1
   AND #BUTLEFT
   BEQ NoRLeft
   LDA lockleft
-  CMP #$01
-  BEQ NoRLeftLocked
+  CMP #0
+  BNE NoRLeftLocked
   LDA $0203
 ;  CMP #$00
 ;  BEQ NoRLeftLocked
@@ -466,14 +485,23 @@ NoRRightLocked:
   SBC #$08
   STA checkx
 ;  STA $0203
-  LDA #$01
+  LDA #MOVEDELAY
   STA lockleft
 ;  JMP GameEngineDone
   JMP NoRLeftLocked
 NoRLeft:
   LDA #$00
   STA lockleft
+  JMP RChecks
 NoRLeftLocked:
+  LDA lockleft
+  SEC
+  SBC #1
+  STA lockleft
+  
+
+
+RChecks:
 
   LDA checkx
   CMP $0203
