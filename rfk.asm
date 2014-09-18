@@ -22,6 +22,12 @@ lockdown   .rs 1  ; Lock the down direction
 lockright  .rs 1  ; Lock the right direction
 lockleft   .rs 1  ; Lock the left direction.
 multtemp   .rs 1  ; Temp storage for multiplication
+checkx  .rs 1 ; x position for movement checking
+checky  .rs 1 ; y position for movement checking
+founditem .rs 1 ; nki/kitten id bumped into
+tmpx .rs 1; nki checking storage
+tmpy .rs 1; nki checking storage
+rngbuf .rs 14; buffer to make rng0 $0020
 rng0 .rs 1; random number generator output
 rng1 .rs 1; random number generator output
 rng2 .rs 1; random number generator output
@@ -31,12 +37,7 @@ rng5 .rs 1; random number generator output
 rng6 .rs 1; random number generator output
 rng7 .rs 1; random number generator output
 rng8 .rs 1; temp byte for rng manipulation
-checkx  .rs 1 ; x position for movement checking
-checky  .rs 1 ; y position for movement checking
-founditem .rs 1 ; nki/kitten id bumped into
-tmpx .rs 1; nki checking storage
-tmpy .rs 1; nki checking storage
-
+rngbuf2 .rs 7; 0020 for rng only
 
 ;; DECLARE SOME CONSTANTS HERE
 STATETITLE     = $00  ; displaying title screen
@@ -83,8 +84,14 @@ vblankwait1:       ; First wait for vblank to make sure PPU is ready
   BPL vblankwait1
 
 clrmem:
+  TXA
+  AND #$F0
+  CMP #$20 
+  BEQ clrmem2 ; skip 0020s (rng)
   LDA #$00
   STA $0000, x
+clrmem2:
+  LDA #$00
   STA $0100, x
   STA $0300, x
   STA $0400, x
@@ -122,27 +129,7 @@ LoadPalettesLoop:
 
 
   
-
-
-;;;Set some initial ball stats
-  ; seed rng
-  LDA #$69
-  STA rng0
-  LDA #$00
-  STA rng1
-  LDA #$34
-  STA rng2
-  LDA #$56
-  STA rng3
-  LDA #$78
-  STA rng4
-  LDA #$9A
-  STA rng5
-  LDA #$BC
-  STA rng6
-  LDA #$DF
-  STA rng7
-  
+  JSR first_seed
 
 ;;:Set starting game state
   LDA #STATETITLE
@@ -217,6 +204,48 @@ GameEngineDone:
  
  
 ;;;;;;;;
+
+
+first_seed:
+  LDA #0
+  CMP rng0
+  BNE first_seed_end
+  CMP rng1
+  BNE first_seed_end
+  CMP rng2
+  BNE first_seed_end
+  CMP rng3
+  BNE first_seed_end
+  LDA #$FF
+  CMP rng4
+  BNE first_seed_end
+  CMP rng5
+  BNE first_seed_end
+  CMP rng6
+  BNE first_seed_end
+  CMP rng7
+  BNE first_seed_end
+
+;;;Set some initial ball stats
+  ; seed rng
+  LDA #$69
+  STA rng0
+  LDA #$00
+  STA rng1
+  LDA #$34
+  STA rng2
+  LDA #$56
+  STA rng3
+  LDA #$78
+  STA rng4
+  LDA #$9A
+  STA rng5
+  LDA #$BC
+  STA rng6
+  LDA #$DF
+  STA rng7
+first_seed_end:
+  RTS 
  
 EngineTitle:
   LDA titledrawn
@@ -276,6 +305,11 @@ DoneDisp:
   
   JSR clear_screen
   JSR SpriteSetup
+  LDA #$20 ; static kitteh for testing
+  STA $0205 ; kitteh tile
+  LDA #3 ; kitteh palette
+  STA $0206 ; kitteh tile
+  
   JMP GameEngineDone
   
 NoStart:
