@@ -617,7 +617,7 @@ EndOfCheckBounds:
 
 HandleItem:
   ; display message correlating with X register'd item
-
+  JSR DispLine
   
 
   LDA founditem
@@ -697,7 +697,25 @@ clrloop:
   	bne clrloop
 ;--------------------
   	dex        ; one chunk done so X = X - 1.
-  	bne clrloop   ; if X isn't zero, do again        
+  	bne clrloop   ; if X isn't zero, do again
+	; Reset the Attribute table for strings
+LoadAttribute:
+
+  LDA $2002             ; read PPU status to reset the high/low latch
+  LDA #$23
+  STA $2006             ; write the high byte of $23C0 address
+  LDA #$C0
+  STA $2006             ; write the low byte of $23C0 address
+  LDX #$00              ; start out at 0
+
+LoadAttributeLoop:
+
+  LDA attribute, x      ; load data from address (attribute + the value in x)
+  STA $2007             ; write to PPU
+  INX                   ; X = X + 1
+  CPX #$08              ; Compare X to hex $08, decimal 8 - copying 8 bytes
+  BNE LoadAttributeLoop
+
 	jsr turn_screen_on
 	RTS
 ;;;;;;;;;;;;;;  
@@ -919,6 +937,33 @@ random_number:
   STA rng0
   RTS
 
+DispLine:
+  lda $2002    ;wait
+  bpl DispLine
+	
+  lda #$20        ;set ppu to start of VRAM
+  sta $2006       
+  lda #$20     
+  sta $2006 
+  
+  LDX #$00
+  LDA #$00
+  
+LineSkip:
+
+  STA $2007
+  INX
+  CPX #$40
+  BNE LineSkip
+  
+  LDX #$00
+DispLineLoop:
+  LDA strings, X
+  STA $2007
+  INX
+  CPX #$0C
+  BNE DispLineLoop
+RTS  
   
 title: 
   .incbin "title.bin"
@@ -936,7 +981,11 @@ sprites:
   ;.db $88, $34, $00, $80   ;sprite 2
   ;.db $88, $35, $00, $88   ;sprite 3
 
-
+attribute:  
+  .db %00000000, %00010000, %0010000, %00010000, %00000000, %00000000, %00000000, %00110000
+  
+strings:
+  .db $34, $45, $53, $54, $00, $33, $54, $52, $49, $4E, $47 ; Test String
 
   .org $FFFA     ;first of the three vectors starts here
   .dw NMI        ;when an NMI happens (once per frame if enabled) the 
