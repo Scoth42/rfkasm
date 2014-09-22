@@ -707,17 +707,23 @@ LoadAttribute:
   LDA #$C0
   STA $2006             ; write the low byte of $23C0 address
   LDX #$00              ; start out at 0
-
+  LDY #$00
 LoadAttributeLoop:
 
   LDA attribute, x      ; load data from address (attribute + the value in x)
   STA $2007             ; write to PPU
-  INX                   ; X = X + 1
-  CPX #$08              ; Compare X to hex $08, decimal 8 - copying 8 bytes
+  INX  ; X = X + 1
+  INY  ; Y = Y + 1
+  CPX #$0F              ; Compare X to hex $08, decimal 8 - copying 8 bytes
+  BNE LoadAttributeLoop
+  
+  LDX #$00
+  
+  CPY #$40
   BNE LoadAttributeLoop
 
-	jsr turn_screen_on
-	RTS
+  jsr turn_screen_on
+  RTS
 ;;;;;;;;;;;;;;  
 
 SpriteSetup:
@@ -982,7 +988,8 @@ sprites:
   ;.db $88, $35, $00, $88   ;sprite 3
 
 attribute:  
-  .db %00000000, %00010000, %0010000, %00010000, %00000000, %00000000, %00000000, %00110000
+  .db %00000000, %00000000, %0000000, %00000000, %00000000, %00000000, %00000000, %00000000
+  .db %00000000, %00000000, %0000000, %00000000, %00000000, %00000000, %00000000, %00000000
   
 strings:
   .db $34, $45, $53, $54, $00, $33, $54, $52, $49, $4E, $47 ; Test String
