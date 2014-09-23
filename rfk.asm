@@ -126,8 +126,6 @@ LoadPalettesLoop:
   CPX #$20              ; Compare X to hex $10, decimal 16 - copying 16 bytes = 4 sprites
   BNE LoadPalettesLoop  ; Branch to LoadPalettesLoop if compare was Not Equal to zero
                         ; if compare was equal to 32, keep going down
-
-
   
   JSR first_seed
 
@@ -162,9 +160,7 @@ NMI:
   ;STA $2000
   ;LDA #%00011110   ; enable sprites, enable background, no clipping on left side
   ;STA $2001
-  ;LDA #$00        ;;tell the ppu there is no background scrolling
-  ;STA $2005
-  ;STA $2005
+
     
   ;;;all graphics updates done by here, run game engine
 
@@ -248,6 +244,7 @@ first_seed_end:
   RTS 
  
 EngineTitle:
+  
   LDA titledrawn
   BNE DoneDisp
   LDA $2002    ; read PPU status to reset the high/low latch to high
@@ -295,6 +292,10 @@ bgloop:
 	sta titledrawn
 	
 DoneDisp:
+  ;LDA #$00        ;;tell the ppu there is no background scrolling
+  ;STA $2005
+  ;STA $2005
+
   LDA buttons1
   AND #BUTSTART
   BEQ NoStart
@@ -690,6 +691,7 @@ clear_screen:
     jsr turn_screen_off
 	ldx #4  ; number of 256-byte chunks to load
   	ldy #0
+	
 clrloop:
 	lda #$00
   	sta $2007     ; load 256 bytes
@@ -707,21 +709,14 @@ LoadAttribute:
   LDA #$C0
   STA $2006             ; write the low byte of $23C0 address
   LDX #$00              ; start out at 0
-  LDY #$00
+  LDA %01010101
 LoadAttributeLoop:
 
-  LDA attribute, x      ; load data from address (attribute + the value in x)
   STA $2007             ; write to PPU
-  INX  ; X = X + 1
-  INY  ; Y = Y + 1
-  CPX #$0F              ; Compare X to hex $08, decimal 8 - copying 8 bytes
+  INX  					; X = X + 1
+  CPX #$40              ; Compare X to hex 64. Copying lots of bytes.
   BNE LoadAttributeLoop
   
-  LDX #$00
-  
-  CPY #$40
-  BNE LoadAttributeLoop
-
   jsr turn_screen_on
   RTS
 ;;;;;;;;;;;;;;  
@@ -946,6 +941,10 @@ random_number:
 DispLine:
   lda $2002    ;wait
   bpl DispLine
+  
+  lda #$00
+  
+  STA $2001 ; Disable Rendering. Does not disable NMI. Hopefully.
 	
   lda #$20        ;set ppu to start of VRAM
   sta $2006       
@@ -959,9 +958,9 @@ LineSkip:
 
   STA $2007
   INX
-  CPX #$40
+  CPX #$20
   BNE LineSkip
-  
+ 
   LDX #$00
 DispLineLoop:
   LDA strings, X
@@ -969,6 +968,13 @@ DispLineLoop:
   INX
   CPX #$0C
   BNE DispLineLoop
+  
+  LDA #%00011110   ; enable sprites, enable background, no clipping on left side
+  STA $2001
+  
+  LDA #$00        ;;tell the ppu there is no background scrolling
+  STA $2005
+  STA $2005
 RTS  
   
 title: 
@@ -977,7 +983,7 @@ title:
   .bank 1
   .org $E000
 palette:
-  .db $0f,$2d,$10,$30,  $0f,$01,$21,$31,  $0f,$06,$16,$26,  $0f,$2d,$19,$29   ;; background palette
+  .db $0f,$2d,$10,$30,  $0f,$30,$21,$31,  $0f,$06,$16,$26,  $0f,$2d,$19,$29   ;; background palette
   .db $0f,$1a,$30,$37,  $16,$01,$21,$31,  $26,$28,$25,$35,  $36,$16,$29,$39   ;;sprite palette
 
 sprites:
@@ -987,9 +993,9 @@ sprites:
   ;.db $88, $34, $00, $80   ;sprite 2
   ;.db $88, $35, $00, $88   ;sprite 3
 
-attribute:  
-  .db %00000000, %00000000, %0000000, %00000000, %00000000, %00000000, %00000000, %00000000
-  .db %00000000, %00000000, %0000000, %00000000, %00000000, %00000000, %00000000, %00000000
+;attribute:  
+  ;.db %00000000, %00000000, %0000000, %00000000, %00000000, %00000000, %00000000, %00000000
+  ;.db %00000000, %00000000, %0000000, %00000000, %00000000, %00000000, %00000000, %00000000
   
 strings:
   .db $34, $45, $53, $54, $00, $33, $54, $52, $49, $4E, $47 ; Test String
