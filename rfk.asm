@@ -1,4 +1,4 @@
-  .inesprg 1   ; 1x 16KB PRG code
+  .inesprg 2   ; 1x 16KB PRG code
   .ineschr 1   ; 1x  8KB CHR data
   .inesmap 0   ; mapper 0 = NROM, no bank swapping
   .inesmir 1   ; background mirroring
@@ -66,7 +66,7 @@ BUTA      =$80
 addrLO:	.db 0  ; make "variable"s for our indirect addressing
 addrHI: .db 0
 
-  .org $C000 
+  .org $8000 
 RESET:
   SEI          ; disable IRQs
   CLD          ; disable decimal mode
@@ -981,7 +981,7 @@ title:
   .incbin "title.bin"
   
   .bank 1
-  .org $E000
+  .org $A000
 palette:
   .db $0f,$2d,$10,$30,  $0f,$30,$21,$31,  $0f,$06,$16,$26,  $0f,$2d,$19,$29   ;; background palette
   .db $0f,$1a,$30,$37,  $16,$01,$21,$31,  $26,$28,$25,$35,  $36,$16,$29,$39   ;;sprite palette
@@ -999,19 +999,28 @@ sprites:
   
 strings:
   .db $34, $45, $53, $54, $00, $33, $54, $52, $49, $4E, $47 ; Test String
-
+  
+  .bank 2
+  .org $C000
+  
+strings2:
+  .db $34, $45, $53, $54, $00, $33, $54, $52, $49, $4E, $47 ; Test String
+  
+  .bank 3
+  .org $E000
+  
+strings3:
+  .db $34, $45, $53, $54, $00, $33, $54, $52, $49, $4E, $47 ; Test String
+  
   .org $FFFA     ;first of the three vectors starts here
   .dw NMI        ;when an NMI happens (once per frame if enabled) the 
                    ;processor will jump to the label NMI:
   .dw RESET      ;when the processor first turns on or is reset, it will jump
                    ;to the label RESET:
   .dw 0          ;external interrupt IRQ is not used in this tutorial
-  
-
-
 ;;;;;;;;;;;;;;  
   
   
-  .bank 2
+  .bank 4
   .org $0000
   .incbin "rfk.chr"   ;includes 8KB graphics file from SMB1
