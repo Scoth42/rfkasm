@@ -1,2 +1,2 @@
-NESASM3 rfk.asm
+NESASM3 -s rfk.asm
 pause
