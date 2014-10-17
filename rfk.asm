@@ -38,6 +38,9 @@ rng6 .rs 1; random number generator output
 rng7 .rs 1; random number generator output
 rng8 .rs 1; temp byte for rng manipulation
 rngbuf2 .rs 7; 0020 for rng only
+stringlist .rs 1 ; Which string list to use.
+nkistrings .rs 63 ; Assign a string to the nki
+nkislist .rs 63 ; Assign a list to the nki
 
 ;; DECLARE SOME CONSTANTS HERE
 STATETITLE     = $00  ; displaying title screen
@@ -956,15 +959,49 @@ DispLine:
   
 LineSkip:
 
-  STA $2007
+  STA $2007 ; Skipping the NTSC line at the top.
   INX
   CPX #$20
   BNE LineSkip
  
   LDX #$00
+  
+  LDA #$01 ; Hardcoding the list of strings to use. This will be used for randomly picking the three.
+  STA stringlist
+  
 DispLineLoop:
+  LDA stringlist
+  
+  CMP #$00
+  BEQ ldst1
+  
+  CMP #$01
+  BEQ ldst2
+  
+  CMP #$02
+  BEQ ldst3
+  
+ldst1:
   LDA strings, X
+  SEC
+  SBC #$20
   STA $2007
+  JMP strdone
+  
+ldst2:
+  LDA strings2, X
+  SEC
+  SBC #$20
+  STA $2007
+  JMP strdone
+  
+ldst3:
+  LDA strings3, X
+  SEC
+  SBC #$20
+  STA $2007
+  
+strdone:
   INX
   CPX #$0C
   BNE DispLineLoop
