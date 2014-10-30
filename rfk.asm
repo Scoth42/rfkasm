@@ -39,6 +39,7 @@ rng7 .rs 1; random number generator output
 rng8 .rs 1; temp byte for rng manipulation
 rngbuf2 .rs 7; 0020 for rng only
 stringlist .rs 1 ; Which string list to use.
+stringitself .rs 1; Which string to use
 nkistrings .rs 63 ; Assign a string to the nki
 nkislist .rs 63 ; Assign a list to the nki
 
@@ -1005,11 +1006,15 @@ LineSkip:
   CPX #$20
   BNE LineSkip
  
-  LDX #$00
+  LDX founditem
   
-  LDA #$01 ; Hardcoding the list of strings to use. This will be used for randomly picking the three.
+  LDA nkislist, X ; Should be the page to use
   STA stringlist
   
+  LDA nkistrings, X ; Should be string itself to use
+  STA stringitself
+  
+  LDX #$00 
 DispLineLoop:
   LDA stringlist
   
@@ -1024,27 +1029,35 @@ DispLineLoop:
   
 ldst1:
   LDA strings, X
+  CMP #$40
+  BEQ strdone
   SEC
   SBC #$20
   STA $2007
-  JMP strdone
+  JMP DispLineLoop
   
 ldst2:
   LDA strings2, X
+  CMP #$40
+  BEQ strdone
+  
   SEC
   SBC #$20
   STA $2007
-  JMP strdone
+  JMP DispLineLoop
   
 ldst3:
   LDA strings3, X
+  CMP #$40
+  BEQ strdone
   SEC
   SBC #$20
   STA $2007
+  JMP DispLineLoop
   
 strdone:
   INX
-  CPX #$0C
+  CMP #$40
   BNE DispLineLoop
   
   LDA #%00011110   ; enable sprites, enable background, no clipping on left side
