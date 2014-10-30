@@ -62,13 +62,15 @@ BUTA      =$80
 
 
 
-
+; start with bank 0
   .bank 0
   
-  	.org $0040
+  ; indirect addressing must be in the zero page
+  .org $0040
 addrLO:	.db 0  ; make "variable"s for our indirect addressing
 addrHI: .db 0
 
+; Our real bank 0 starts here
   .org $8000 
 RESET:
   SEI          ; disable IRQs
@@ -132,11 +134,12 @@ LoadPalettesLoop:
   
   JSR first_seed
 
-;;:Set starting game state
+;;:Set starting game state. We want to start at title
   LDA #STATETITLE
   STA gamestate
+
   
-  LDA #$20
+  LDA #$20 ; Default number of nkis
   STA nkis
   
   ;JSR turn_screen_on
@@ -183,15 +186,15 @@ GameEngine:
   CMP #STATEGAMEOVER
   BNE dj1
   JMP EngineGameOver  ;;game is displaying ending screen
+
 dj1:
-  
   LDA gamestate
   CMP #STATEPLAYING
   BNE dj2
   LDA #$DE
   STA $0500
   JMP EnginePlaying   ;;game is playing
-  dj2:
+dj2:
   
 GameEngineDone:  
   
@@ -248,7 +251,7 @@ first_seed_end:
  
 EngineTitle:
   
-  LDA titledrawn
+  LDA titledrawn ; Check to see if the title is done displaying. If not, keep going, otherwise skip the drawing.
   BNE DoneDisp
   LDA $2002    ; read PPU status to reset the high/low latch to high
   LDA #$3F
@@ -299,6 +302,7 @@ DoneDisp:
   ;STA $2005
   ;STA $2005
 
+  ; We're done displaying the title. Start polling for the buttons to increase/decrease nkis and start to start
   LDA buttons1
   AND #BUTSTART
   BEQ NoStart
@@ -309,6 +313,7 @@ DoneDisp:
   
   JSR clear_screen
   JSR SpriteSetup
+  JSR nkiPageSel
   ;LDA #$20 ; static kitteh for testing
   ;STA $0205 ; kitteh tile
   ;LDA #3 ; kitteh palette
@@ -316,6 +321,7 @@ DoneDisp:
   
   JMP GameEngineDone
   
+  ; Start not pushed, check for up and increment nkis if need be
 NoStart:
   LDA buttons1
   AND #BUTUP
@@ -325,12 +331,13 @@ NoStart:
   BNE NoUp
   INC nkis
   LDA nkis
-  CMP #$40
+  CMP #$40 ; Prevent nkis from going over 63.
   BNE notmax
   LDA #$3F
   STA nkis
 notmax:
   
+  ; Up not pushed, decrement nkis
 NoUp:
   LDA buttons1
   AND #BUTDOWN
@@ -340,18 +347,20 @@ NoUp:
   BNE NoDown
   DEC nkis
   LDA nkis
-  CMP #$00
+  CMP #$00 ; Prevent nkis from going below 0 (underflow to 255)
   BNE notmin
   LDA #$01
   STA nkis
 notmin:
   
+  ; Down not pushed, go on with life.
 NoDown:
 
   LDX #$00
   STX nkiones ; Blank out ones temp
   STX nkitens ; Blank out tens temp
   
+  ; Routine to convert the hex nkis to decimal output for the screen display.
 IncOnes:
   INX
   CPX nkis
@@ -394,6 +403,7 @@ IncDone:
   LDA nkiones
   CLC
   ADC #$10
+  ; Write the values to the sprites in the right spot.
   STA $0205
   LDA #%00000011
   STA $0206
@@ -405,7 +415,7 @@ IncDone:
 ;;;;;;;;; 
  
 EngineGameOver:
-
+ ; Win/game over will go here.
   JMP GameEngineDone
  
 ;;;;;;;;;;;
@@ -424,18 +434,18 @@ EnginePlaying:
   BEQ NoRUp
   LDA lockup
   CMP #0
-  BNE NoRUpLocked
+  BNE NoRUpLocked 
 
   LDA $0200
 ;  CMP #$27
 ;  BEQ NoRUpLocked
   SEC
-  SBC #$08
+  SBC #$08 ; Actually reducing the location
 ; A contains destination y
   STA checky
 
 ;  STA $0200
-  LDA #MOVEDELAY
+  LDA #MOVEDELAY ; 
   STA lockup
   JMP NoRUpLocked
 NoRUp:
@@ -891,10 +901,29 @@ nkiOverlapFound:
   SEC ; carry bit is the return value
 nkiOverlapEnd:
   LDX tmpx
-  LDY tmpy
+  LDY tmpy  
+  
+  RTS
+
+nkiPageSel:
+  STX tmpx
+
+  LDX #$00
+  
+  ; Select which page each item is going to have for a string
+nkiPageSelLoop:
+  JSR random_number
+  AND #%00000011 ; Keeping the last two bits
+  CMP #%00000011 ; We actually don't want 3. Try again.
+  BEQ nkiPageSelLoop
+  
+  STA nkislist,X 
+  INX
+  CPX #$3F
+  BNE nkiPageSelLoop
   RTS
   
-
+  
 ;random_number:
 ;  LDA #$AF
 ;  STA $0504
