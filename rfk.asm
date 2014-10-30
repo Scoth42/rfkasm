@@ -913,14 +913,26 @@ nkiPageSel:
   ; Select which page each item is going to have for a string
 nkiPageSelLoop:
   JSR random_number
-  AND #%00000011 ; Keeping the last two bits
-  CMP #%00000011 ; We actually don't want 3. Try again.
+  AND #%00000011 ; Keeping the last two bits. We only have three pages, this gets us 0-3
+  CMP #%00000011 ; We actually don't want 3. Try again. We only want 3 pages.
   BEQ nkiPageSelLoop
   
   STA nkislist,X 
+
+RetryStringLoop:  
+  JSR random_number ; This will be for the actual string. Needs 146
+  CLC
+  CMP #$92 ; We really only want numbers under 146. Not too bad a performance penalty here.
+  BCS RetryStringLoop
+  
+  STA nkistrings,X
   INX
+  
+  ; Keep on going for all 63 nkis. This doesn't seem to take too long, so might as well do it even if we don't need it.
   CPX #$3F
   BNE nkiPageSelLoop
+  
+  LDX tmpx
   RTS
   
   
