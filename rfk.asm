@@ -933,6 +933,8 @@ RetryStringLoop:
   CPX #$3F
   BNE nkiPageSelLoop
   
+  
+  
   LDX tmpx
   RTS
   
@@ -1028,6 +1030,13 @@ DispLineLoop:
   BEQ ldst3
   
 ldst1:
+  LDY #$00
+  LDA #high(strings)
+  STA addrHI
+  
+  LDA #low(strings)
+  STA addrLO
+  
   LDA strings, X
   CMP #$40
   BEQ strdone
@@ -1054,6 +1063,21 @@ ldst3:
   SBC #$20
   STA $2007
   JMP DispLineLoop
+  
+  LDA #high(strings)
+  STA addrHI
+  
+  LDA #low(strings)
+  STA addrLO
+  
+  LDA strings
+  STA $C3
+  
+  LDY $C1
+  
+  LDA [addrLO],Y
+  
+  STA $C5
   
 strdone:
   INX
