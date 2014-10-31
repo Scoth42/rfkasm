@@ -995,7 +995,7 @@ DispLine:
 	
   lda #$20        ;set ppu to start of VRAM
   sta $2006       
-  lda #$20     
+  lda #$40     
   sta $2006 
   
   LDX #$00
@@ -1003,10 +1003,10 @@ DispLine:
   
 LineSkip:
 
-  STA $2007 ; Skipping the NTSC line at the top.
-  INX
-  CPX #$20
-  BNE LineSkip
+ ; STA $2007 ; Skipping the NTSC line at the top. We don't actually need to do this anymore.
+ ; INX
+ ; CPX #$20
+ ; BNE LineSkip
  
   LDX founditem
   
@@ -1092,7 +1092,7 @@ strdone:
   LDA #$00 ; String's done, but we need to blank out the rest of the lines to remove old strings.
   STA $2007 ; Stick it in the PPU
   INY 
-  CPY #$80 ; Are we done yet?
+  CPY #$60 ; Are we done yet?
   BNE strdone ; Nope, back again we go.
   
   ; We don't actually want to disable sprite rendering, but here we are.
