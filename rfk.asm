@@ -991,7 +991,7 @@ DispLine:
   
   lda #$00
   
-  STA $2001 ; Disable Rendering. Does not disable NMI. Hopefully.
+  STA $2001 ; Disable Rendering. Does not disable NMI. Hopefully. We don't actually want to do this.
 	
   lda #$20        ;set ppu to start of VRAM
   sta $2006       
@@ -1010,16 +1010,20 @@ LineSkip:
  
   LDX founditem
   
-  LDA nkislist, X ; Should be the page to use
+  LDA nkislist, X ; Should be the page to use. Storing for later
   STA stringlist
   
-  LDA nkistrings, X ; Should be string itself to use
+  LDA nkistrings, X ; Should be string itself to use. Storing for later
   STA stringitself
   
   LDX #$00 
-DispLineLoop:
-  LDA stringlist
+  LDY #$00
+  STY multtemp ; reusing this; blank it out. Hopefully don't come to regret this but it oughtn't be used.
   
+DispLineLoop:
+
+  ; Selector for which page to use. 
+  LDA stringlist 
   CMP #$00
   BEQ ldst1
   
@@ -1029,68 +1033,91 @@ DispLineLoop:
   CMP #$02
   BEQ ldst3
   
+  ; Each of these works the same:
+  ; For each page, we want to load the first character in.
+  ; Then we jump down to the common portion.
 ldst1:
-  LDY #$00
+  
   LDA #high(strings)
   STA addrHI
   
   LDA #low(strings)
   STA addrLO
-  
-  LDA strings, X
-  CMP #$40
-  BEQ strdone
-  SEC
-  SBC #$20
-  STA $2007
-  JMP DispLineLoop
+  JMP DoneInitLoad
   
 ldst2:
-  LDA strings2, X
-  CMP #$40
-  BEQ strdone
-  
-  SEC
-  SBC #$20
-  STA $2007
-  JMP DispLineLoop
-  
-ldst3:
-  LDA strings3, X
-  CMP #$40
-  BEQ strdone
-  SEC
-  SBC #$20
-  STA $2007
-  JMP DispLineLoop
-  
-  LDA #high(strings)
+
+  LDA #high(strings2)
   STA addrHI
   
-  LDA #low(strings)
+  LDA #low(strings2)
   STA addrLO
+  JMP DoneInitLoad
   
-  LDA strings
-  STA $C3
+ldst3:
+  LDA #high(strings3)
+  STA addrHI
   
-  LDY $C1
+  LDA #low(strings3)
+  STA addrLO
+  JMP DoneInitLoad
+
+
+DoneInitLoad:  
+  LDA [addrLO], y ; Loads in the actually character we're displaying
+  CMP #$40  ; Check to see if it's the delimiter
+  BNE NotStartChar ; It's not, move along
+  JSR incLinePos ; It is! We need to increment the line position.
   
-  LDA [addrLO],Y
+NotStartChar:
+  INY
+  LDA multtemp 
+  CMP stringitself ; First thing's first we need to see if we've reached our string.
+  BEQ LineStart ; We have! Let's display it!
   
-  STA $C5
+  JMP DispLineLoop  ; Nope, we haven't reached where we want yet. Keep on truckin'
+
+LineStart:   
+  LDA [addrLO], y ; Load in the character to display
+  CMP #$40 ; If we've reached the next dilineator, we're done.
+  BEQ strdone ; Get us out of here!
+  
+  SEC ; Subtracting to get our proper tile to display
+  SBC #$20
+  STA $2007 ; Stick it in the PPU
+  INY ; Incrementing for the next character
+  JMP LineStart ; Keep on truckin'
   
 strdone:
-  INX
-  CMP #$40
-  BNE DispLineLoop
+  LDA #$00 ; String's done, but we need to blank out the rest of the lines to remove old strings.
+  STA $2007 ; Stick it in the PPU
+  INY 
+  CPY #$80 ; Are we done yet?
+  BNE strdone ; Nope, back again we go.
   
+  ; We don't actually want to disable sprite rendering, but here we are.
   LDA #%00011110   ; enable sprites, enable background, no clipping on left side
   STA $2001
   
-  LDA #$00        ;;tell the ppu there is no background scrolling
+  LDA #$00        ;;tell the ppu there is no background scrolling. Stupid PPU.
   STA $2005
   STA $2005
-RTS  
+  RTS  
+
+incLinePos:
+
+  INC multtemp ; Increment our line pos.
+  CLC
+  ADC addrLO, y ; Increment our low address
+  BVC NoOverflow ; Did our LO address overflow? No? Well then we don't want to do anything to our Hi
+  INC addrHI ; Since our overflow did get set, we need to increment our hi address.
+  CLV ; Clear overflow.
+NoOverflow:
+  RTS ; Back home we go.
+  
+  
+    
+  
   
 title: 
   .incbin "title.bin"
