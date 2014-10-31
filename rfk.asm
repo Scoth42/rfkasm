@@ -986,17 +986,14 @@ random_number:
   RTS
 
 DispLine:
-  lda $2002    ;wait
-  bpl DispLine
+
+  ;LDA #%00010000   ; disable NMI, sprites from Pattern Table 0, background from Pattern Table 1
+  ;STA $2000
   
-  lda #$00
+  ;lda #$00
   
-  STA $2001 ; Disable Rendering. Does not disable NMI. Hopefully. We don't actually want to do this.
-	
-  lda #$20        ;set ppu to start of VRAM
-  sta $2006       
-  lda #$40     
-  sta $2006 
+  ;STA $2001 ; Disable Rendering. Does not disable NMI. Hopefully. We don't actually want to do this.
+ 
   
   LDX #$00
   LDA #$00
@@ -1077,7 +1074,17 @@ NotStartChar:
   
   JMP DispLineLoop  ; Nope, we haven't reached where we want yet. Keep on truckin'
 
-LineStart:   
+LineStart:
+  lda $2002    ;wait
+  bpl LineStart
+  
+  LDA $2002	
+  lda #$20        ;set ppu to start of VRAM
+  sta $2006       
+  lda #$40     
+  sta $2006
+LineCont:  
+    
   LDA [addrLO], y ; Load in the character to display
   CMP #$40 ; If we've reached the next dilineator, we're done.
   BEQ strdone ; Get us out of here!
@@ -1086,18 +1093,21 @@ LineStart:
   SBC #$20
   STA $2007 ; Stick it in the PPU
   INY ; Incrementing for the next character
-  JMP LineStart ; Keep on truckin'
+  JMP LineCont ; Keep on truckin'
   
 strdone:
-  LDA #$00 ; String's done, but we need to blank out the rest of the lines to remove old strings.
-  STA $2007 ; Stick it in the PPU
-  INY 
-  CPY #$60 ; Are we done yet?
-  BNE strdone ; Nope, back again we go.
+  ;LDA #$00 ; String's done, but we need to blank out the rest of the lines to remove old strings.
+  ;STA $2007 ; Stick it in the PPU
+  ;INY 
+  ;CPY #$50 ; Are we done yet?
+  ;BNE strdone ; Nope, back again we go.
   
   ; We don't actually want to disable sprite rendering, but here we are.
-  LDA #%00011110   ; enable sprites, enable background, no clipping on left side
-  STA $2001
+  ;LDA #%00011110   ; enable sprites, enable background, no clipping on left side
+  ;STA $2001
+  
+  ;LDA #%10010000   ; enable NMI, sprites from Pattern Table 0, background from Pattern Table 1
+  ;STA $2000
   
   LDA #$00        ;;tell the ppu there is no background scrolling. Stupid PPU.
   STA $2005
