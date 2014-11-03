@@ -571,7 +571,7 @@ EndControls:
 CheckBoundsAndCollisions:
   ; Lower Bounds
   LDA checkx
-  CMP #0 ; x minimum
+  CMP #$00 ; x minimum
   BEQ CBACCchecky ; on the line is in
   BCC EndOfCheckBounds ; not possible when xmin is 0
 
@@ -618,7 +618,8 @@ CBACCNoMatch:
   JMP CBACCLoop
 FoundMatch:
   ; X = item which might be kitten
-  STX founditem 
+  STX founditem
+  STX $D0  
   JMP HandleItem
 CheckedOutCanMove:
   ; move robot here, to checkx,checky
@@ -985,33 +986,16 @@ random_number:
   STA rng0
   RTS
 
-DispLine:
-
-  ;LDA #%00010000   ; disable NMI, sprites from Pattern Table 0, background from Pattern Table 1
-  ;STA $2000
-  
-  ;lda #$00
-  
-  ;STA $2001 ; Disable Rendering. Does not disable NMI. Hopefully. We don't actually want to do this.
- 
-  
-  LDX #$00
-  LDA #$00
-  
-LineSkip:
-
- ; STA $2007 ; Skipping the NTSC line at the top. We don't actually need to do this anymore.
- ; INX
- ; CPX #$20
- ; BNE LineSkip
- 
+DispLine:  
   LDX founditem
   
   LDA nkislist, X ; Should be the page to use. Storing for later
   STA stringlist
+  STA $D1
   
   LDA nkistrings, X ; Should be string itself to use. Storing for later
   STA stringitself
+  STA $D2
   
   LDX #$00 
   LDY #$00
