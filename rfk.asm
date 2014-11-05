@@ -42,6 +42,7 @@ stringlist .rs 1 ; Which string list to use.
 stringitself .rs 1; Which string to use
 nkistrings .rs 63 ; Assign a string to the nki
 nkislist .rs 63 ; Assign a list to the nki
+linebuffer .rs 96 ; Took too long to do the conversion on the fly. So we're doing this.
 
 ;; DECLARE SOME CONSTANTS HERE
 STATETITLE     = $00  ; displaying title screen
@@ -1005,6 +1006,8 @@ DispLineLoop:
 
   ; Selector for which page to use. 
   LDA stringlist 
+  JMP ldst1
+  
   CMP #$00
   BEQ ldst1
   
@@ -1021,9 +1024,12 @@ ldst1:
   
   LDA #high(strings)
   STA addrHI
+  STA $D5
   
   LDA #low(strings)
   STA addrLO
+  STA $D4
+  
   JMP DoneInitLoad
   
 ldst2:
@@ -1045,7 +1051,7 @@ ldst3:
 
 
 DoneInitLoad:  
-  LDA [addrLO], y ; Loads in the actually character we're displaying
+  LDA [addrLO], Y ; Loads in the actually character we're displaying
   CMP #$40  ; Check to see if it's the delimiter
   BNE NotStartChar ; It's not, move along
   JSR incLinePos ; It is! We need to increment the line position.
@@ -1054,32 +1060,49 @@ NotStartChar:
   INY
   LDA multtemp 
   CMP stringitself ; First thing's first we need to see if we've reached our string.
-  BEQ LineStart ; We have! Let's display it!
+  BEQ FillBufferStart ; We have! Let's display it!
   
-  JMP DispLineLoop  ; Nope, we haven't reached where we want yet. Keep on truckin'
+  JMP DoneInitLoad  ; Nope, we haven't reached where we want yet. Keep on truckin'
 
+  ; Gotta fill up the buffer
+FillBufferStart:
+  LDY $00
+
+FillBufferLoop:
+  LDA [addrLO], Y
+  CMP #$40 ; Next delineator? We're done
+  BEQ BufferDone
+  SEC
+  SBC #$20 ; Convert to ASCII
+  STA linebuffer, Y ; Stick it in the line buffer
+  INY ; Inc Y-offset
+  JMP FillBufferLoop
+  
+BufferDone:
+  LDA #$00
+  STA linebuffer, Y
+  INY
+  CPY #$61
+  BNE BufferDone  
+  
+  LDY #$00
 LineStart:
   lda $2002    ;wait
   bpl LineStart
   
-  LDA $2002	
   lda #$20        ;set ppu to start of VRAM
   sta $2006       
   lda #$40     
   sta $2006
 LineCont:  
-    
-  LDA [addrLO], y ; Load in the character to display
-  CMP #$40 ; If we've reached the next dilineator, we're done.
-  BEQ strdone ; Get us out of here!
-  
-  SEC ; Subtracting to get our proper tile to display
-  SBC #$20
-  STA $2007 ; Stick it in the PPU
+  LDA linebuffer, Y ; Load in the character to display
+  STA $2007
   INY ; Incrementing for the next character
-  JMP LineCont ; Keep on truckin'
+  CPY #$60
+  BNE LineCont
   
 strdone:
+  ; First we need to 
   ;LDA #$00 ; String's done, but we need to blank out the rest of the lines to remove old strings.
   ;STA $2007 ; Stick it in the PPU
   ;INY 
@@ -1100,13 +1123,24 @@ strdone:
 
 incLinePos:
 
-  INC multtemp ; Increment our line pos.
+  INC multtemp ; Increment our line pos. This is to count the strings.
+  TYA
   CLC
-  ADC addrLO, y ; Increment our low address
-  BVC NoOverflow ; Did our LO address overflow? No? Well then we don't want to do anything to our Hi
+  ADC addrLO
+  STA addrLO
+  ;TAX
+  ;LDA #$00
+  ;ADC addrLO, X ; Increment our low address
+  ;STA addrLO
+  ;STA $D6
+  BCC NoOverflow ; Did our LO address overflow? No? Well then we don't want to do anything to our Hi
   INC addrHI ; Since our overflow did get set, we need to increment our hi address.
-  CLV ; Clear overflow.
+  CLC
 NoOverflow:
+  LDA addrHI
+  STA $D7
+  LDY #$00
+  
   RTS ; Back home we go.
   
   
