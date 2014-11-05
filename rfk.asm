@@ -43,6 +43,7 @@ stringitself .rs 1; Which string to use
 nkistrings .rs 63 ; Assign a string to the nki
 nkislist .rs 63 ; Assign a list to the nki
 linebuffer .rs 96 ; Took too long to do the conversion on the fly. So we're doing this.
+displayingline .rs 1 ; Are we displaying a line? Lock out everything if we are.
 
 ;; DECLARE SOME CONSTANTS HERE
 STATETITLE     = $00  ; displaying title screen
@@ -157,6 +158,9 @@ Forever:
  
 
 NMI:
+  LDA displayingline
+  BNE skipnmi
+
   LDA #$00
   STA $2003       ; set the low byte (00) of the RAM address
   LDA #$02
@@ -201,7 +205,9 @@ dj2:
 GameEngineDone:  
   
   JSR UpdateSprites  ;;set ball/paddle sprites from positions
-
+  
+skipnmi:
+  
   RTI             ; return from interrupt
  
  
@@ -1090,6 +1096,9 @@ LineStart:
   lda $2002    ;wait
   bpl LineStart
   
+  LDA #$01
+  STA displayingline
+  
   lda #$20        ;set ppu to start of VRAM
   sta $2006       
   lda #$40     
@@ -1098,6 +1107,11 @@ LineCont:
   LDA linebuffer, Y ; Load in the character to display
   STA $2007
   INY ; Incrementing for the next character
+  CPY #$20
+  BEQ buffersplit
+  CPY #$40
+  BEQ buffersplit2
+bufferreturn:  
   CPY #$60
   BNE LineCont
   
@@ -1117,6 +1131,7 @@ strdone:
   ;STA $2000
   
   LDA #$00        ;;tell the ppu there is no background scrolling. Stupid PPU.
+  STA displayingline ; No longer displaying line 
   STA $2005
   STA $2005
   RTS  
@@ -1143,9 +1158,25 @@ NoOverflow:
   
   RTS ; Back home we go.
   
+buffersplit1:
+  LDA $2002
+  BPL buffersplit
   
+  lda #$20        ;set ppu to start of VRAM
+  sta $2006       
+  lda #$40     
+  sta $2006
+  JMP bufferreturn
     
+buffersplit2:
+  LDA $2002
+  BPL buffersplit
   
+  lda #$20        ;set ppu to start of VRAM
+  sta $2006       
+  lda #$60     
+  sta $2006
+  JMP bufferreturn
   
 title: 
   .incbin "title.bin"
