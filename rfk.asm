@@ -44,6 +44,7 @@ nkistrings .rs 63 ; Assign a string to the nki
 nkislist .rs 63 ; Assign a list to the nki
 linebuffer .rs 96 ; Took too long to do the conversion on the fly. So we're doing this.
 displayingline .rs 1 ; Are we displaying a line? Lock out everything if we are.
+buffertemp .rs 1 ; Using to tighten up the buffer display loop.
 
 ;; DECLARE SOME CONSTANTS HERE
 STATETITLE     = $00  ; displaying title screen
@@ -626,7 +627,7 @@ CBACCNoMatch:
 FoundMatch:
   ; X = item which might be kitten
   STX founditem
-  STX $D0  
+  ;STX $D0  
   JMP HandleItem
 CheckedOutCanMove:
   ; move robot here, to checkx,checky
@@ -998,11 +999,11 @@ DispLine:
   
   LDA nkislist, X ; Should be the page to use. Storing for later
   STA stringlist
-  STA $D1
+  ;STA $D1
   
   LDA nkistrings, X ; Should be string itself to use. Storing for later
   STA stringitself
-  STA $D2
+  ;STA $D2
   
   LDX #$00 
   LDY #$00
@@ -1030,11 +1031,11 @@ ldst1:
   
   LDA #high(strings)
   STA addrHI
-  STA $D5
+  ;STA $D5
   
   LDA #low(strings)
   STA addrLO
-  STA $D4
+  ;STA $D4
   
   JMP DoneInitLoad
   
@@ -1091,13 +1092,17 @@ BufferDone:
   CPY #$61
   BNE BufferDone  
   
+  LDA #$20
+  STA buffertemp
+  
   LDY #$00
+  LDA #$01
+  STA displayingline
 LineStart:
   lda $2002    ;wait
   bpl LineStart
   
-  LDA #$01
-  STA displayingline
+
   
   lda #$20        ;set ppu to start of VRAM
   sta $2006       
@@ -1107,13 +1112,9 @@ LineCont:
   LDA linebuffer, Y ; Load in the character to display
   STA $2007
   INY ; Incrementing for the next character
-  CPY #$20
+  CPY buffertemp
   BEQ buffersplit
-  CPY #$40
-  BEQ buffersplit2
-bufferreturn:  
-  CPY #$60
-  BNE LineCont
+  JMP LineCont
   
 strdone:
   ; First we need to 
@@ -1153,30 +1154,35 @@ incLinePos:
   CLC
 NoOverflow:
   LDA addrHI
-  STA $D7
+  ;STA $D7
   LDY #$00
   
   RTS ; Back home we go.
   
-buffersplit1:
+buffersplit:
+  LDA #$00 ; Reset scrolling. Stupid PPU.
+  STA $2005
+  STA $2005
+  
+  LDA #$20 ; Add to our buffertemp for the next line
+  CLC
+  ADC buffertemp
+  CMP #$80
+  BEQ strdone
+  STA buffertemp
+  
+newvblankwait:  
   LDA $2002
-  BPL buffersplit
+  BPL newvblankwait
   
   lda #$20        ;set ppu to start of VRAM
   sta $2006       
-  lda #$40     
+  lda buffertemp
+  CLC
+  ADC #$20
   sta $2006
-  JMP bufferreturn
-    
-buffersplit2:
-  LDA $2002
-  BPL buffersplit
+  JMP LineCont
   
-  lda #$20        ;set ppu to start of VRAM
-  sta $2006       
-  lda #$60     
-  sta $2006
-  JMP bufferreturn
   
 title: 
   .incbin "title.bin"
