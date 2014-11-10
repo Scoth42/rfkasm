@@ -424,7 +424,21 @@ IncDone:
 ;;;;;;;;; 
  
 EngineGameOver:
+  LDA buttons1
+  AND #BUTSTART
+  BEQ NoGOStart
+  LDA #$01
+  STA multtemp
+  JMP SkipHere
+  
+NoGOStart:
+  LDA multtemp
+  BEQ SkipHere
+  JMP RESET
+  
  ; Win/game over will go here.
+  
+SkipHere:
   JMP GameEngineDone
  
 ;;;;;;;;;;;
@@ -651,9 +665,12 @@ HandleItem:
   RTS
 
 GameOver:
+  LDA #$00
+  STA multtemp
   LDA #STATEGAMEOVER
   STA gamestate
-  JMP GameOver ; forever FIXME
+GameOverLock
+  JMP GameOverLock ; forever FIXME
  
  
  
