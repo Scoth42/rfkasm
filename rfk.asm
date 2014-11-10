@@ -70,7 +70,7 @@ BUTA      =$80
   .bank 0
   
   ; indirect addressing must be in the zero page
-  .org $0040
+  .org $0080
 addrLO:	.db 0  ; make "variable"s for our indirect addressing
 addrHI: .db 0
 
@@ -1013,7 +1013,7 @@ DispLineLoop:
 
   ; Selector for which page to use. 
   LDA stringlist 
-  JMP ldst1
+  ;JMP ldst1
   
   CMP #$00
   BEQ ldst1
@@ -1060,17 +1060,11 @@ ldst3:
 DoneInitLoad:  
   LDA [addrLO], Y ; Loads in the actually character we're displaying
   CMP #$40  ; Check to see if it's the delimiter
-  BNE NotStartChar ; It's not, move along
-  JSR incLinePos ; It is! We need to increment the line position.
-  
-NotStartChar:
+  BEQ incLinePos
+InitReturn:
   INY
-  LDA multtemp 
-  CMP stringitself ; First thing's first we need to see if we've reached our string.
-  BEQ FillBufferStart ; We have! Let's display it!
+  JMP DoneInitLoad ; It's not, move along
   
-  JMP DoneInitLoad  ; Nope, we haven't reached where we want yet. Keep on truckin'
-
   ; Gotta fill up the buffer
 FillBufferStart:
   LDY $00
@@ -1089,6 +1083,7 @@ BufferDone:
   LDA #$00
   STA linebuffer, Y
   INY
+  LDA $2002
   CPY #$61
   BNE BufferDone  
   
@@ -1101,8 +1096,6 @@ BufferDone:
 LineStart:
   lda $2002    ;wait
   bpl LineStart
-  
-
   
   lda #$20        ;set ppu to start of VRAM
   sta $2006       
@@ -1138,7 +1131,10 @@ strdone:
   RTS  
 
 incLinePos:
-
+  LDA multtemp
+  CMP stringitself
+  BEQ FillBufferStart
+  
   INC multtemp ; Increment our line pos. This is to count the strings.
   TYA
   CLC
@@ -1157,7 +1153,7 @@ NoOverflow:
   ;STA $D7
   LDY #$00
   
-  RTS ; Back home we go.
+  JMP InitReturn ; Back home we go.
   
 buffersplit:
   LDA #$00 ; Reset scrolling. Stupid PPU.
@@ -1623,7 +1619,7 @@ strings:
   .db $62, $73, $2e, $0a, $40, $41, $20, $70, $75, $64, $64, $6c, $65, $20, $6f, $66
   .db $20, $6d, $75, $64, $2c, $20, $77, $68, $65, $72, $65, $20, $74, $68, $65, $20
   .db $6d, $75, $64, $73, $6b, $69, $70, $70, $65, $72, $73, $20, $70, $6c, $61, $79
-  .db $2e
+  .db $2e, $40
   
   .bank 2
   .org $C000
@@ -2053,7 +2049,7 @@ strings2:
   .db $20, $4c, $61, $77, $73, $20, $6f, $66, $20, $52, $6f, $62, $6f, $74, $69, $63
   .db $73, $2e, $20, $59, $6f, $75, $20, $66, $65, $65, $6c, $20, $61, $20, $73, $74
   .db $72, $61, $6e, $67, $65, $20, $61, $66, $66, $69, $6e, $69, $74, $79, $20, $66
-  .db $6f, $72, $20, $74, $68, $65, $6d, $2e
+  .db $6f, $72, $20, $74, $68, $65, $6d, $2e, $40
   
   .bank 3
   .org $E000
@@ -2520,7 +2516,7 @@ strings3:
   .db $72, $69, $76, $61, $74, $69, $76, $65, $20, $73, $69, $74, $73, $20, $68, $65
   .db $72, $65, $20, $6c, $6f, $6f, $6b, $69, $6e, $67, $20, $61, $74, $20, $79, $6f
   .db $75, $2e, $0a, $40, $41, $20, $62, $6f, $61, $74, $2e, $0a, $40, $41, $20, $6b
-  .db $61, $79, $61, $6b, $2e
+  .db $61, $79, $61, $6b, $2e, $40
   
   .org $FFFA     ;first of the three vectors starts here
   .dw NMI        ;when an NMI happens (once per frame if enabled) the 
