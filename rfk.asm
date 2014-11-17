@@ -159,13 +159,15 @@ Forever:
  
 
 NMI:
-  LDA displayingline
-  BNE skipnmi
+
 
   LDA #$00
   STA $2003       ; set the low byte (00) of the RAM address
   LDA #$02
   STA $4014       ; set the high byte (02) of the RAM address, start the transfer
+  LDA displayingline
+  BNE skipnmi
+  
   JSR random_number ; for randomness
 
   ;;This is the PPU clean up section, so rendering the next frame starts properly.
@@ -865,9 +867,9 @@ nkix:
   SEC
   SBC #1 ; range should really be 0-254 than 1-255
   
-  STA $0160,x ; debug
+  ;STA $0160,x ; debug
   AND #$F8
-  STA $0161,x ; debug
+  ;STA $0161,x ; debug
   ;CLC
   ;ADC #$1 ;  one pixel
   ;STA $0162,x ; debug
@@ -1012,6 +1014,10 @@ random_number:
   RTS
 
 DispLine:  
+
+  LDA #$01
+  STA displayingline
+  
   LDX founditem
   
   LDA nkislist, X ; Should be the page to use. Storing for later
@@ -1108,15 +1114,13 @@ BufferDone:
   STA buffertemp
   
   LDY #$00
-  LDA #$01
-  STA displayingline
 LineStart:
   lda $2002    ;wait
   bpl LineStart
   
   lda #$20        ;set ppu to start of VRAM
   sta $2006       
-  lda #$40     
+  lda #$3F     
   sta $2006
 LineCont:  
   LDA linebuffer, Y ; Load in the character to display
