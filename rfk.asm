@@ -159,13 +159,14 @@ Forever:
  
 
 NMI:
-
+  STA tmpx
 
   LDA #$00
   STA $2003       ; set the low byte (00) of the RAM address
   LDA #$02
   STA $4014       ; set the high byte (02) of the RAM address, start the transfer
   LDA displayingline
+  
   BNE skipnmi
   
   JSR random_number ; for randomness
@@ -210,7 +211,7 @@ GameEngineDone:
   JSR UpdateSprites  ;;set ball/paddle sprites from positions
   
 skipnmi:
-  
+  LDA tmpx
   RTI             ; return from interrupt
  
  
@@ -1107,7 +1108,7 @@ BufferDone:
   STA linebuffer, Y
   INY
   LDA $2002
-  CPY #$61
+  CPY #$60
   BNE BufferDone  
   
   LDA #$20
