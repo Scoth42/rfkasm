@@ -50,7 +50,7 @@ buffertemp .rs 1 ; Using to tighten up the buffer display loop.
 STATETITLE     = $00  ; displaying title screen
 STATEPLAYING   = $01  ; move paddles/ball, check for collisions
 STATEGAMEOVER  = $02  ; displaying game over screen
-MOVEDELAY  = $08  ; NMI between moves
+MOVEDELAY  = $1A  ; NMI between moves
 
 ; Button codes and combinations
 BUTRIGHT  =$1 
@@ -835,9 +835,9 @@ nkiy:
   AND #$F8 ; (multiples of 8)
   ;STA $0165,x -- debug logging in memory
   CLC
-  ADC #$21 ; Y-offset 1 pixel + one tile width (drawing from the bottom left) + 3 tile widths for info
+  ADC #$29 ; Y-offset 1 pixel + one tile width (drawing from the bottom left) + 3 tile widths for info
   BCS nkiy ; -- >FF is a rejection; could handle here or earlier with another CMP
-  CMP #$DF ; limit to usable tiles (y cutoff)
+  CMP #$D7 ; limit to usable tiles (y cutoff)
   BCS nkiy
   
   STA $0204,x ; y coord
@@ -2496,7 +2496,7 @@ strings3:
   .db $65, $20, $67, $72, $61, $69, $6e, $20, $6f, $66, $20, $73, $61, $6e, $64, $2e
   .db $0a, $40, $41, $20, $46, $65, $64, $65, $72, $61, $6c, $20, $53, $69, $67, $6e
   .db $61, $6c, $20, $54, $68, $75, $6e, $64, $65, $72, $62, $6f, $6c, $74, $20, $31
-  .db $30, $30, $33, $54, $20, $73, $69, $72, $65, $6e, $20, $69, $73, $20, $67, $6f
+  .db $30, $30, $33, $41, $20, $73, $69, $72, $65, $6e, $20, $69, $73, $20, $67, $6f
   .db $69, $6e, $67, $20, $6f, $66, $66, $20, $68, $65, $72, $65, $2e, $20, $49, $74
   .db $73, $20, $72, $6f, $74, $61, $74, $6f, $72, $20, $69, $73, $20, $62, $72, $6f
   .db $6b, $65, $6e, $2e, $0a, $40, $41, $20, $73, $63, $72, $61, $70, $70, $65, $64
