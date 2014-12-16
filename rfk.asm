@@ -602,7 +602,7 @@ CheckBoundsAndCollisions:
 
 CBACCchecky:
   LDA checky
-  CMP #1
+  CMP #$28
   BEQ CBACCcheckupy
   BCC EndOfCheckBounds
 
