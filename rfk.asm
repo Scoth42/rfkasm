@@ -427,6 +427,10 @@ IncDone:
 ;;;;;;;;; 
  
 EngineGameOver:
+  ; Blank out line for displaying win animation
+  JSR LineBlank
+
+  ; Checking for Start pushed
   LDA buttons1
   AND #BUTSTART
   BEQ NoGOStart
@@ -435,6 +439,7 @@ EngineGameOver:
   JMP SkipHere
   
 NoGOStart:
+  ; Once start pushed and then released, return to title screen.
   LDA multtemp
   BEQ SkipHere
   JMP RESET
@@ -658,13 +663,12 @@ EndOfCheckBounds:
 
 HandleItem:
   ; display message correlating with X register'd item
-  JSR DispLine
-  
 
   LDA founditem
   CMP #0 ; kitten!
   BEQ GameOver
-
+  
+  JSR DispLine
   RTS
 
 GameOver:
@@ -1201,6 +1205,22 @@ newvblankwait:
   sta $2006
   JMP LineCont
   
+LineBlank:
+  lda $2002    ;wait
+  bpl LineStart
+  
+  lda #$20        ;set ppu to start of VRAM
+  sta $2006       
+  lda #$3F     
+  sta $2006
+  LDA #$00
+LineBlankCont:  
+ ; Load in the character to display
+  STA $2007
+  INY ; Incrementing for the next character
+  CPY #$60
+  BNE LineBlankCont
+  RTS
   
 title: 
   .incbin "title.bin"
