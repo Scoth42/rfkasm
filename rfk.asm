@@ -45,6 +45,8 @@ nkislist .rs 63 ; Assign a list to the nki
 linebuffer .rs 96 ; Took too long to do the conversion on the fly. So we're doing this.
 displayingline .rs 1 ; Are we displaying a line? Lock out everything if we are.
 buffertemp .rs 1 ; Using to tighten up the buffer display loop.
+gameovercounter .rs 1 ; Counting gameover NMIs
+gameoverstage .rs 1 ; Keeping track of what state we're in with the gameover animation. 
 
 ;; DECLARE SOME CONSTANTS HERE
 STATETITLE     = $00  ; displaying title screen
@@ -426,10 +428,25 @@ IncDone:
 
 ;;;;;;;;; 
  
-EngineGameOver:
-  ; Blank out line for displaying win animation
-  JSR LineBlank
+;;; GAMEOVERNMI HERE
 
+EngineGameOver:
+
+  LDA gameoverstage
+  CMP #$04
+  BEQ animdone
+  
+  INC gameovercounter
+  CMP gameovercounter
+  BEQ incgameoverstage
+  JMP nostage
+  
+incgameoverstage:
+	INC gameoverstage
+	
+nostage:
+
+animdone:
   ; Checking for Start pushed
   LDA buttons1
   AND #BUTSTART
@@ -672,8 +689,14 @@ HandleItem:
   RTS
 
 GameOver:
+  ; Blank out line for displaying win animation
+  JSR LineBlank
+  
   LDA #$00
   STA multtemp
+  STA gameoverstage
+  STA gameovercounter
+  
   LDA #STATEGAMEOVER
   STA gamestate
 GameOverLock
