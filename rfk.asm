@@ -799,25 +799,14 @@ roby:
   AND #$F8 ; (multiples of 8)
   ;AND #$38 ; (for testing)
   STA $0200
-;  LDA #$1 ; --n8TEST
-;  AND #$1f ; reduce random bits to 0-31
-;  AND #$7 ; --n8TEST
-;  STA $0200
-;  CMP #$17
-;  BCS roby
-;  LDX #$07
-;ymult:
-;  ADC $0200
-;  DEX
-;  CPX #$00
-;  BNE ymult
-;  ROL $0200
-;  ROL $0200
-;  ROL $0200
-
-  ;ADC #$28
   CLC
-  ADC #1 ; y offset
+  ADC #$29 ; Y-offset 1 pixel + one tile width (drawing from the bottom left) + 3 tile widths for info
+  BCS roby ; -- >FF is a rejection; could handle here or earlier with another CMP
+  CMP #$D7 ; limit to usable tiles (y cutoff)
+  BCS roby
+  ;ADC #$28
+  ;CLC
+  ;ADC #1 ; y offset
   STA $0200
   
   LDA #$B0
@@ -829,6 +818,11 @@ roby:
 robx:
   JSR random_number
   AND #$F8 ; reduce random bits to 0-31
+  
+  CMP #$F1 ; x cutoff
+  
+  BCS robx
+  
   STA $0203
   ;CMP #$1f ; n8-- = xmax? was $17 (ymax?)
   ;BCS robx
