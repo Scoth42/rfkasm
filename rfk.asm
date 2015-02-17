@@ -450,9 +450,10 @@ incgameoverstage:
 nostage:
   LDA gameoverstage
   CMP #$01
-  BEQ step1
-  
-  
+  BNE nostep1
+  JMP step1
+nostep1:
+
   CMP #$03
   BEQ step2
   
@@ -461,8 +462,6 @@ nostage:
   
   CMP #$07
   BEQ step4
-  
-step1:
 
   JMP SkipHere
 step2:
@@ -1269,6 +1268,45 @@ LineBlankCont:
   CPY #$60
   BNE LineBlankCont
   RTS
+  
+step1:
+  lda $2002    ;wait
+  bpl step1
+  
+  lda #$20        ;set ppu to start of VRAM
+  sta $2006       
+  lda #$40     
+  sta $2006
+    
+  INC gameoverstage
+  LDY #$00
+  LDA #$43
+  STA linebuffer,Y
+  INY
+  LDA #$00
+  STA linebuffer,Y
+  INY
+  STA linebuffer,Y
+  INY
+  STA linebuffer,Y
+  INY
+  STA linebuffer,Y
+  INY
+  LDA #$23
+  STA linebuffer,Y
+  
+  LDY #$00
+  STY $2005
+  STY $2005
+step1loop:  
+ ; Load in the character to display
+  LDA linebuffer, Y
+  
+  STA $2007
+  INY ; Incrementing for the next character
+  CPY #$09
+  BNE step1loop
+  JMP SkipHere
   
 title: 
   .incbin "title.bin"
