@@ -312,9 +312,9 @@ bgloop:
 	sta titledrawn
 	
 DoneDisp:
-  ;LDA #$00        ;;tell the ppu there is no background scrolling
-  ;STA $2005
-  ;STA $2005
+  LDA #$00        ;;tell the ppu there is no background scrolling
+  STA $2005
+  STA $2005
 
   ; We're done displaying the title. Start polling for the buttons to increase/decrease nkis and start to start
   LDA buttons1
@@ -455,7 +455,9 @@ nostage:
 nostep1:
 
   CMP #$03
-  BEQ step2
+  BNE nostep2
+  JMP step2
+nostep2:
   
   CMP #$05
   BEQ step3
@@ -464,9 +466,7 @@ nostep1:
   BEQ step4
 
   JMP SkipHere
-step2:
 
-  JMP SkipHere
 step3:
 
   JMP SkipHere
@@ -1306,6 +1306,47 @@ step1loop:
   INY ; Incrementing for the next character
   CPY #$09
   BNE step1loop
+  JMP SkipHere
+  
+step2:
+  lda $2002    ;wait
+  bpl step2
+  
+  lda #$20        ;set ppu to start of VRAM
+  sta $2006       
+  lda #$40     
+  sta $2006
+    
+  INC gameoverstage
+  LDY #$00
+  LDA #$00
+  STA linebuffer,Y
+  INY
+  LDA #$23
+  STA linebuffer,Y
+  LDA #$00
+  INY
+  STA linebuffer,Y
+  INY
+  STA linebuffer,Y
+  INY
+  LDA #$43
+  STA linebuffer,Y
+  INY
+  LDA #$00
+  STA linebuffer,Y
+  
+  LDY #$00
+  STY $2005
+  STY $2005
+step2loop:  
+ ; Load in the character to display
+  LDA linebuffer, Y
+  
+  STA $2007
+  INY ; Incrementing for the next character
+  CPY #$09
+  BNE step2loop
   JMP SkipHere
   
 title: 
