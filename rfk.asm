@@ -433,19 +433,49 @@ IncDone:
 EngineGameOver:
 
   LDA gameoverstage
-  CMP #$04
+  CMP #$08
   BEQ animdone
   
   INC gameovercounter
-  CMP gameovercounter
+  LDA gameovercounter
+  CMP #$40
   BEQ incgameoverstage
   JMP nostage
   
 incgameoverstage:
 	INC gameoverstage
+	LDA #00
+	STA gameovercounter
 	
 nostage:
+  LDA gameoverstage
+  CMP #$01
+  BEQ step1
+  
+  
+  CMP #$03
+  BEQ step2
+  
+  CMP #$05
+  BEQ step3
+  
+  CMP #$07
+  BEQ step4
+  
+step1:
 
+  JMP SkipHere
+step2:
+
+  JMP SkipHere
+step3:
+
+  JMP SkipHere
+step4:
+  
+  JMP SkipHere
+
+  JMP SkipHere
 animdone:
   ; Checking for Start pushed
   LDA buttons1
@@ -1234,6 +1264,7 @@ LineBlank:
 LineBlankCont:  
  ; Load in the character to display
   STA $2007
+  STA linebuffer,Y
   INY ; Incrementing for the next character
   CPY #$60
   BNE LineBlankCont
