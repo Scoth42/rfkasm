@@ -401,7 +401,7 @@ IncDone:
   LDA nkitens
   STA nkitens
   
-  LDA #$8D
+  LDA #$8F
   STA $0200
   LDA nkitens
   CLC
@@ -412,7 +412,7 @@ IncDone:
   LDA #$A4
   STA $0203
   
-  LDA #$8D
+  LDA #$8F
   STA $0204
   LDA nkiones
   CLC
