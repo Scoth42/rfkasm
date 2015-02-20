@@ -274,7 +274,9 @@ EngineTitle:
   STA $2006    ; write the low byte of $3F10 address
   LDA #$2D
   STA $2007
-  
+  LDA #$00
+  ;STA $2005
+  ;STA $2005
   
   JSR turn_screen_off
   ;LDX #$40
@@ -307,14 +309,15 @@ bgloop:
   	inc addrHI  ; increment high byte of address title to next 256 byte chunk
   	dex        ; one chunk done so X = X - 1.
   	bne bgloop   ; if X isn't zero, do again
+
 	jsr turn_screen_on
     lda #$01
 	sta titledrawn
 	
 DoneDisp:
-  LDA #$00        ;;tell the ppu there is no background scrolling
-  STA $2005
-  STA $2005
+  ;LDA #$00        ;;tell the ppu there is no background scrolling
+  ;STA $2005
+  ;STA $2005
 
   ; We're done displaying the title. Start polling for the buttons to increase/decrease nkis and start to start
   LDA buttons1
@@ -460,16 +463,15 @@ nostep1:
 nostep2:
   
   CMP #$05
-  BEQ step3
+  BNE nostep3
+  JMP step3
+nostep3:
   
   CMP #$07
   BEQ step4
 
   JMP SkipHere
 
-step3:
-
-  JMP SkipHere
 step4:
   
   JMP SkipHere
@@ -1348,6 +1350,47 @@ step2loop:
   CPY #$09
   BNE step2loop
   JMP SkipHere
+  
+step3:
+  lda $2002    ;wait
+  bpl step3
+  
+  lda #$20        ;set ppu to start of VRAM
+  sta $2006       
+  lda #$40     
+  sta $2006
+    
+  INC gameoverstage
+  LDY #$00
+  LDA #$00
+  STA linebuffer,Y
+  INY
+  STA linebuffer,Y
+  LDA #$23
+  INY
+  STA linebuffer,Y
+  LDA #$43
+  INY
+  STA linebuffer,Y
+  INY
+  LDA #$00
+  STA linebuffer,Y
+  INY
+  STA linebuffer,Y
+  
+  LDY #$00
+  STY $2005
+  STY $2005
+step3loop:  
+ ; Load in the character to display
+  LDA linebuffer, Y
+  
+  STA $2007
+  INY ; Incrementing for the next character
+  CPY #$09
+  BNE step3loop
+  JMP SkipHere  
+  
   
 title: 
   .incbin "title.bin"
