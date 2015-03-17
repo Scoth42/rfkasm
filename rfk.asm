@@ -1282,7 +1282,7 @@ step1:
     
   INC gameoverstage
   LDY #$00
-  LDA #$43
+  LDA #$B0
   STA linebuffer,Y
   INY
   LDA #$00
@@ -1324,7 +1324,7 @@ step2:
   LDA #$00
   STA linebuffer,Y
   INY
-  LDA #$23
+  LDA #$B0
   STA linebuffer,Y
   LDA #$00
   INY
@@ -1366,7 +1366,7 @@ step3:
   STA linebuffer,Y
   INY
   STA linebuffer,Y
-  LDA #$23
+  LDA #$B0
   INY
   STA linebuffer,Y
   LDA #$43
