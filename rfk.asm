@@ -327,7 +327,7 @@ DoneDisp:
   STA gamestate
     ; seed rng
   ;LDA nmicounter
-  
+
   JSR clear_screen
   JSR SpriteSetup
   JSR nkiPageSel
@@ -506,6 +506,13 @@ EnginePlaying:
   LDA $0203
   STA checkx
 
+  ;LDA $2002    ; read PPU status to reset the high/low latch to high
+  ;LDA #$3F
+  ;STA $2006    ; write the high byte of $3F10 address
+  ;LDA #$1D
+  ;STA $2006    ; write the low byte of $3F10 address
+  ;LDA #$11
+  ;STA $2007
 
 ;-------------------UP--------------------------
   LDA buttons1
@@ -789,10 +796,25 @@ turn_screen_off:
   rts  
 
 clear_screen:
+  BIT $2002
+  BNE clear_screen
+  LDA $2002    ; read PPU status to reset the high/low latch to high
+  LDA #$3F
+  STA $2006    ; write the high byte of $3F10 address
+  LDA #$1D
+  STA $2006    ; write the low byte of $3F10 address
+  LDA #$12
+  STA $2007
+
+	ldx #0
+	lda #$20  ; set the destination address in PPU memory
+  	sta $2006  ; should be $2000
+  	stx $2006
+	
     jsr turn_screen_off
 	ldx #4  ; number of 256-byte chunks to load
   	ldy #0
-	
+  
 clrloop:
 	lda #$00
   	sta $2007     ; load 256 bytes
@@ -1398,9 +1420,11 @@ title:
   .bank 1
   .org $A000
 palette:
+  
   .db $0f,$2d,$10,$30,  $0f,$30,$21,$31,  $0f,$06,$16,$26,  $0f,$2d,$19,$29   ;; background palette
-  .db $0f,$1a,$30,$37,  $16,$01,$21,$31,  $26,$28,$25,$35,  $36,$16,$29,$39   ;;sprite palette
-
+  ;.db $0f, $0f, $0f, $0f,  $0f, $0f, $0f, $0f,  $0f, $0f, $0f, $0f,  $0f, $0f, $0f, $0f
+  .db $0f,$1a,$30,$37,  $0f,$16,$21,$31,  $0f,$27,$25,$35,  $0f,$13,$29,$39   ;;sprite palette
+  
 sprites:
      ;vert tile attr horiz
   .db $80, $B0, $00, $80   ;sprite 0
