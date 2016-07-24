@@ -722,13 +722,21 @@ HandleItem:
   LDA founditem
   CMP #0 ; kitten!
   BEQ GameOver
-  
+
   JSR DispLine
   RTS
 
 GameOver:
   ; Blank out line for displaying win animation
-  JSR LineBlank
+  ; JSR LineBlank
+  LDA #$01
+  STA displayingline
+  
+  LDA #$20
+  STA buffertemp
+  LDY #$00
+  
+  JSR LineStart
   
   LDA #$00
   STA multtemp
@@ -737,7 +745,7 @@ GameOver:
   
   LDA #STATEGAMEOVER
   STA gamestate
-GameOverLock
+GameOverLock:
   JMP GameOverLock ; forever FIXME
  
  
@@ -1176,7 +1184,8 @@ FillBufferLoop:
   STA linebuffer, Y ; Stick it in the line buffer
   INY ; Inc Y-offset
   JMP FillBufferLoop
-  
+
+  ; Fill up the rest of the buffer with blanks to empty out remainder.
 BufferDone:
   LDA #$00
   STA linebuffer, Y
@@ -1200,6 +1209,8 @@ LineStart:
 LineCont:  
   LDA linebuffer, Y ; Load in the character to display
   STA $2007
+  LDA #$00
+  STA linebuffer, Y
   INY ; Incrementing for the next character
   CPY buffertemp
   BEQ buffersplit
@@ -1277,7 +1288,13 @@ newvblankwait:
   
 LineBlank:
   lda $2002    ;wait
-  bpl LineStart
+  bpl LineBlank 
+  sta linebuffer,y
+  iny
+  cpy #$60
+  bne LineBlank
+  JSR LineStart
+  RTS
   
   lda #$20        ;set ppu to start of VRAM
   sta $2006       
@@ -1285,7 +1302,7 @@ LineBlank:
   sta $2006
   LDA #$00
 LineBlankCont:  
- ; Load in the character to display
+ ; Load in the character to display	
   STA $2007
   STA linebuffer,Y
   INY ; Incrementing for the next character
@@ -1316,7 +1333,8 @@ step1:
   INY
   STA linebuffer,Y
   INY
-  LDA #$23
+  ;LDA #$23
+  LDA $0205
   STA linebuffer,Y
   
   LDY #$00
@@ -1354,7 +1372,8 @@ step2:
   INY
   STA linebuffer,Y
   INY
-  LDA #$43
+  ;LDA #$43
+  LDA $0205
   STA linebuffer,Y
   INY
   LDA #$00
@@ -1391,7 +1410,8 @@ step3:
   LDA #$B0
   INY
   STA linebuffer,Y
-  LDA #$43
+  ;LDA #$43
+  LDA $0205
   INY
   STA linebuffer,Y
   INY
@@ -1421,7 +1441,7 @@ title:
   .org $A000
 palette:
   
-  .db $0f,$2d,$10,$30,  $0f,$30,$21,$31,  $0f,$06,$16,$26,  $0f,$2d,$19,$29   ;; background palette
+  .db $0f,$2d,$30,$30,  $0f,$30,$21,$31,  $0f,$06,$16,$26,  $0f,$2d,$19,$29   ;; background palette
   ;.db $0f, $0f, $0f, $0f,  $0f, $0f, $0f, $0f,  $0f, $0f, $0f, $0f,  $0f, $0f, $0f, $0f
   .db $0f,$1a,$30,$37,  $0f,$16,$21,$31,  $0f,$27,$25,$35,  $0f,$13,$29,$39   ;;sprite palette
   
@@ -2766,3 +2786,4 @@ strings3:
   .bank 4
   .org $0000
   .incbin "rfk.chr"   ;includes 8KB graphics file from SMB1
+
