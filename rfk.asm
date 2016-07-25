@@ -315,9 +315,9 @@ bgloop:
 	sta titledrawn
 	
 DoneDisp:
-  ;LDA #$00        ;;tell the ppu there is no background scrolling
-  ;STA $2005
-  ;STA $2005
+  LDA #$00        ;;tell the ppu there is no background scrolling
+  STA $2005
+  STA $2005
 
   ; We're done displaying the title. Start polling for the buttons to increase/decrease nkis and start to start
   LDA buttons1
@@ -436,7 +436,7 @@ IncDone:
 EngineGameOver:
 
   LDA gameoverstage
-  CMP #$08
+  CMP #$0A
   BEQ animdone
   
   INC gameovercounter
@@ -465,18 +465,20 @@ nostep2:
   CMP #$05
   BNE nostep3
   JMP step3
-nostep3:
-  
+nostep3:  
   CMP #$07
-  BEQ step4
+  BNE nostep4
+  JMP step4
+nostep4:
+  CMP #$09
+  BNE nostep5
+  JMP step5
+nostep5:
 
-  JMP SkipHere
-
-step4:
+step6:
   
   JMP SkipHere
 
-  JMP SkipHere
 animdone:
   ; Checking for Start pushed
   LDA buttons1
@@ -737,6 +739,43 @@ GameOver:
   LDY #$00
   
   JSR LineStart
+  LDA $2002             ; read PPU status to reset the high/low latch
+  LDA #$23
+  STA $2006             ; write the high byte of $23C0 address
+  LDA #$C0
+  STA $2006             ; write the low byte of $23C0 address
+  ;LDA #%01010101
+  LDX $0206
+  LDA #$00
+  CPX #$00
+  BEQ KittenColor
+  DEX
+  LDA #$55
+  CPX #$00
+  BEQ KittenColor
+  DEX
+  LDA #$AA
+  CPX #$00
+  BEQ KittenColor
+  LDA #$FF
+  
+KittenColor:
+  STA $2007
+  STA $2007             ; write to PPU
+  STA $2007             ; write to PPU
+  STA $2007             ; write to PPU
+  STA $2007             ; write to PPU
+  STA $2007             ; write to PPU
+  STA $2007             ; write to PPU
+  STA $2007             ; write to PPU
+  
+  ;LDA $2002    ; read PPU status to reset the high/low latch to high
+  LDA #$3F
+  STA $2006    ; write the high byte of $3F10 address
+  LDA #$0D
+  STA $2006    ; write the low byte of $3F10 address
+  LDA #$13
+  STA $2007
   
   LDA #$00
   STA multtemp
@@ -840,7 +879,7 @@ LoadAttribute:
   LDA #$C0
   STA $2006             ; write the low byte of $23C0 address
   LDX #$00              ; start out at 0
-  LDA %01010101
+  LDA #%11111111
 LoadAttributeLoop:
 
   STA $2007             ; write to PPU
@@ -1286,30 +1325,6 @@ newvblankwait:
   sta $2006
   JMP LineCont
   
-LineBlank:
-  lda $2002    ;wait
-  bpl LineBlank 
-  sta linebuffer,y
-  iny
-  cpy #$60
-  bne LineBlank
-  JSR LineStart
-  RTS
-  
-  lda #$20        ;set ppu to start of VRAM
-  sta $2006       
-  lda #$3F     
-  sta $2006
-  LDA #$00
-LineBlankCont:  
- ; Load in the character to display	
-  STA $2007
-  STA linebuffer,Y
-  INY ; Incrementing for the next character
-  CPY #$60
-  BNE LineBlankCont
-  RTS
-  
 step1:
   lda $2002    ;wait
   bpl step1
@@ -1432,7 +1447,86 @@ step3loop:
   CPY #$09
   BNE step3loop
   JMP SkipHere  
+
+step4:
+  lda $2002    ;wait
+  bpl step4
   
+  lda #$20        ;set ppu to start of VRAM
+  sta $2006       
+  lda #$40     
+  sta $2006
+  
+  INC gameoverstage
+  LDY #$00
+  LDA #$00
+  STA linebuffer,Y
+  INY
+  STA linebuffer,Y
+  LDA #$B0
+  INY
+  STA linebuffer,Y
+  ;LDA #$43
+  LDA $0205
+  INY
+  STA linebuffer,Y
+  INY
+fillbufferloop:
+
+  LDA winstring, Y
+  STA linebuffer, Y
+  INY
+  
+  CPY #$1A
+  BNE fillbufferloop
+  LDY #$00
+  STY $2005
+  STY $2005
+step4loop:  
+ ; Load in the character to display
+  LDA linebuffer, Y
+  
+  STA $2007
+  INY ; Incrementing for the next character
+  CPY #$1A
+  BNE step4loop
+  JMP SkipHere
+
+step5:
+  lda $2002    ;wait
+  bpl step5
+  
+  lda #$20        ;set ppu to start of VRAM
+  sta $2006       
+  lda #$5A     
+  sta $2006
+  
+  INC gameoverstage
+  
+  LDA #$00        ;;tell the ppu there is no background scrolling. Stupid PPU.
+  STA $2005
+  STA $2005
+  LDY #$00
+  LDX #$1A
+fillbufferloop2:
+
+  LDA winstring, X
+  STA linebuffer, Y
+  INY
+  INX
+  
+  CPX #$3A
+  BNE fillbufferloop2
+
+  LDY #$00
+step5loop:
+  LDA linebuffer, Y
+
+  STA $2007
+  INY
+  CPY #$25
+  BNE step5loop
+  JMP SkipHere  
   
 title: 
   .incbin "title.bin"
@@ -1441,9 +1535,10 @@ title:
   .org $A000
 palette:
   
-  .db $0f,$2d,$30,$30,  $0f,$30,$21,$31,  $0f,$06,$16,$26,  $0f,$2d,$19,$29   ;; background palette
+  ;.db $0f,$2d,$30,$37,  $0f,$16,$21,$31,  $0f,$27,$25,$35,  $0f,$13,$29,$39   ;; background palette
+  .db $0f,$1a,$10,$37,  $0f,$16,$10,$31,  $0f,$27,$10,$35,  $0f,$2d,$10,$39   ;; background palette
   ;.db $0f, $0f, $0f, $0f,  $0f, $0f, $0f, $0f,  $0f, $0f, $0f, $0f,  $0f, $0f, $0f, $0f
-  .db $0f,$1a,$30,$37,  $0f,$16,$21,$31,  $0f,$27,$25,$35,  $0f,$13,$29,$39   ;;sprite palette
+  .db $0f,$1a,$10,$37,  $0f,$16,$10,$31,  $0f,$27,$10,$35,  $0f,$13,$10,$39   ;;sprite palette
   
 sprites:
      ;vert tile attr horiz
@@ -1455,6 +1550,16 @@ sprites:
 ;attribute:  
   ;.db %00000000, %00000000, %0000000, %00000000, %00000000, %00000000, %00000000, %00000000
   ;.db %00000000, %00000000, %0000000, %00000000, %00000000, %00000000, %00000000, %00000000
+  
+winstring:
+  .db $00, $00, $00, $00, $00, $00, $00, $00 
+  .db $00, $39, $4F, $55, $00, $46, $4F, $55 
+  .db $4E, $44, $00, $4B, $49, $54, $54, $45 
+  .db $4E, $01, $00, $00, $00, $00, $00, $00 
+  .db $00, $00, $00, $00, $00, $00, $00, $00 
+  .db $00, $37, $41, $59, $00, $54, $4F, $00 
+  .db $47, $4F, $0C, $00, $52, $4F, $42, $4F
+  .db $54, $01  
   
 strings:
   .db $40, $22, $49, $20, $70, $69, $74, $79, $20, $74, $68, $65, $20, $66, $6f, $6f
