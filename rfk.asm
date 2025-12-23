@@ -6,7 +6,7 @@
 
 ;;;;;;;;;;;;;;;
 
-;; DECLARE SOME VARIABLES HERE
+;; DECLARE SOME VARIABLES HERE, AND A CHANGE FOR THINGS
   .rsset $0000  ;;start variables at ram location 0
   
 gamestate  .rs 1  ; .rs 1 means reserve one byte of space
@@ -1072,6 +1072,7 @@ nkiPageSelLoop:
 
 RetryStringLoop:  
   JSR random_number ; This will be for the actual string. Needs 146
+  CLC
   CLC
   CMP #$92 ; We really only want numbers under 146. Not too bad a performance penalty here.
   BCS RetryStringLoop
